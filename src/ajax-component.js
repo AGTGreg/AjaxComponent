@@ -74,7 +74,7 @@ function AjaxComponent(DOMElement) {
         comp.renderLoading(function() {
 
           $.ajax({
-            url: comp.settings.url, data: comp.settings.urlParams,
+            url: comp.settings.baseUrl, data: comp.settings.urlParams,
             method: method, dataType: 'json',
             cache: comp.settings.cacheResults, timeout: comp.timeout,
             success: function(response) {
