@@ -43,8 +43,7 @@ function AjaxComponent(DOMElement) {
     this.state.loading = false,
     this.state.error = false,
     this.state.success = false,
-    this.state.message = null,
-    this.data = {}
+    this.state.message = null
   }
 
   this.setLoading = function(loadingState) {
@@ -63,41 +62,53 @@ function AjaxComponent(DOMElement) {
   this.renderError = null;
 
   this.updateDOM = function(callback) {
-
-    // this.DOMElement.childNodes.forEach(el => {
-    //   if (el.)
-    // });
-    
-    // document.querySelectorAll('[data-if="isLoading"]').forEach(el => {
-    //   el.style.display = 'none';
-    // });
-    
-    // if (this.isLoading()) {
+    const comp = this;
+    // c-if ------------------------------------------------------------------------------------------------------------
+    comp.DOMElement.querySelectorAll('[c-if]').forEach(el => {
       
-    // } else {
-    //   document.querySelectorAll('[data-if="isLoading"]').style.display = 'none';
-    // }
+        let attr = el.getAttribute('c-if');
+        
+        if (attr === 'isLoading') {
+          if (comp.isLoading()) {
+            el.style.display = 'block';
+          } else {
+            el.style.display = 'none';
+          }
 
-    // if (this.isSuccessful()) {
-    //   document.querySelectorAll('[data-if="isSuccessful"]').style.display = 'block';
-    // } else {
-    //   document.querySelectorAll('[data-if="isSuccessful"]').style.display = 'none';
-    // }
+        } else if (attr === 'hasError') {
+          if (comp.hasError()) {
+            el.style.display = 'block';
+          } else {
+            el.style.display = 'none';
+          }
+        } else if (attr === 'isSuccessful' || attr === 'isReady') {
+          if (comp.isSuccessful()) {
+            el.style.display = 'block';
+          } else {
+            el.style.display = 'none';
+          }
+        }
 
-    // if (this.hasError()) {
-    //   document.querySelectorAll('[data-if="hasError"]').style.display = 'block';
-    // } else {
-    //   document.querySelectorAll('[data-if="hasError"]').style.display = 'none';
-    // }
+    });
+
+    // {} --------------------------------------------------------------------------------------------------------------
+    var found = [],          // an array to collect the strings that are found
+                rxp = /{([^}]+)}/g,
+                str = comp.DOMElement.textContent,
+                curMatch;
+    while (curMatch = rxp.exec(str)) {
+      found.push(curMatch[1]);
+    }
+    console.log(found);
 
     if (callback instanceof Function) callback();
   }
 
-  this.update = function(params) {
+  this.update = function(params, callback) {
    this.makeRequest('GET', params); 
   }
 
-  this.makeRequest = function(method, params) {
+  this.makeRequest = function(method, params, callback) {
     const comp = this;
     if (comp.isLoading() === false) {
       if (params) this.updateParams(params);
@@ -127,12 +138,10 @@ function AjaxComponent(DOMElement) {
                 comp.state.message = comp.settings.errorMessage;
               }
             }
-            comp.renderError();
           },
           complete: function() {
             comp.state.loading = false;
             comp.updateDOM(callback)
-            // if (comp.hasError() === false) comp.renderDefault();
           }
         });
 
@@ -143,5 +152,11 @@ function AjaxComponent(DOMElement) {
     }
     
   }
+
+  this.init = function() {
+    this.state.success = true;
+    this.updateDOM();
+  }
+  this.init();
 
 }
