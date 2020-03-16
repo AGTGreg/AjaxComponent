@@ -6,11 +6,14 @@ $(document).ready(function() {
   myAjaxComponent.settings.timeout = 1000;
 
   myAjaxComponent.elements = {
+    content: $(myAjaxComponent.DOMElement).find('.content'),
     updateBtn: $(myAjaxComponent.DOMElement).find('.updateBtn'),
   };
 
   myAjaxComponent.elements.updateBtn.on('click', function() {
-    myAjaxComponent.update();
+    myAjaxComponent.update('', function() {
+      myAjaxComponent.elements.content.text(JSON.stringify(myAjaxComponent.data));
+    });
   });
 
 });

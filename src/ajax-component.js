@@ -46,10 +46,6 @@ function AjaxComponent(DOMElement) {
     this.state.message = null
   }
 
-  this.setLoading = function(loadingState) {
-    
-  }
-
   this.updateParams = function(params) {
     return Object.assign(this.settings.urlParams, params);
   }
@@ -91,21 +87,11 @@ function AjaxComponent(DOMElement) {
 
     });
 
-    // {} --------------------------------------------------------------------------------------------------------------
-    var found = [],          // an array to collect the strings that are found
-                rxp = /{([^}]+)}/g,
-                str = comp.DOMElement.textContent,
-                curMatch;
-    while (curMatch = rxp.exec(str)) {
-      found.push(curMatch[1]);
-    }
-    console.log(found);
-
     if (callback instanceof Function) callback();
   }
 
   this.update = function(params, callback) {
-   this.makeRequest('GET', params); 
+    this.makeRequest('GET', params, callback); 
   }
 
   this.makeRequest = function(method, params, callback) {
