@@ -66,22 +66,28 @@ function AjaxComponent(DOMElement) {
         
         if (attr === 'isLoading') {
           if (comp.isLoading()) {
-            el.style.display = 'block';
+            el.classList.add('show');
+            el.classList.remove('hide');
           } else {
-            el.style.display = 'none';
+            el.classList.add('hide');
+            el.classList.remove('show');
           }
 
         } else if (attr === 'hasError') {
           if (comp.hasError()) {
-            el.style.display = 'block';
+            el.classList.add('show');
+            el.classList.remove('hide');
           } else {
-            el.style.display = 'none';
+            el.classList.add('hide');
+            el.classList.remove('show');
           }
         } else if (attr === 'isSuccessful' || attr === 'isReady') {
           if (comp.isSuccessful()) {
-            el.style.display = 'block';
+            el.classList.add('show');
+            el.classList.remove('hide');
           } else {
-            el.style.display = 'none';
+            el.classList.add('hide');
+            el.classList.remove('show');
           }
         }
 
