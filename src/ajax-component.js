@@ -6,7 +6,7 @@ function AjaxComponent(DOMElement) {
 
   this.settings = {
     baseUrl: null,
-    urlParams: null,
+    urlParams: {},
     timeout: 5000,
     cacheResults: true,
     timeoutMessage: "The request has timed out",
@@ -16,6 +16,7 @@ function AjaxComponent(DOMElement) {
 
   this.data = {};
   this.elements = {};
+  this.methods = {};
 
   this.state = {
     loading: false,
@@ -38,7 +39,7 @@ function AjaxComponent(DOMElement) {
     return this.state.message;
   }
 
-  // Methods
+  // Built-in methods
   this.reset = function() {
     this.state.loading = false,
     this.state.error = false,
@@ -49,13 +50,6 @@ function AjaxComponent(DOMElement) {
   this.updateParams = function(params) {
     return Object.assign(this.settings.urlParams, params);
   }
-  
-  // This must be a function with a callback
-  this.renderLoading = null;
-  
-  this.renderDefault = null;
-  
-  this.renderError = null;
 
   this.updateDOM = function(callback) {
     const comp = this;
@@ -102,46 +96,43 @@ function AjaxComponent(DOMElement) {
 
   this.makeRequest = function(method, params, callback) {
     const comp = this;
-    if (comp.isLoading() === false) {
-      if (params) this.updateParams(params);
+    if (comp.isLoading()) return;
 
-      comp.reset();
-      comp.state.loading = true;
-      comp.updateDOM(function() {
+    if (params) this.updateParams(params);
 
-        $.ajax({
-          url: comp.settings.baseUrl, data: comp.settings.urlParams,
-          method: method, dataType: 'json',
-          cache: comp.settings.cacheResults, timeout: comp.settings.timeout,
-          success: function(response) {
-            comp.state.success = true;
-            comp.data = response;
-          },
-          error: function(jqXHR, status, message) {
-            comp.state.error = true;
-            if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
-              comp.state.message = jqXHR.responseJSON.message;
+    comp.reset();
+    comp.state.loading = true;
+    comp.updateDOM(function() {
+
+      $.ajax({
+        url: comp.settings.baseUrl, data: comp.settings.urlParams,
+        method: method, dataType: 'json',
+        cache: comp.settings.cacheResults, timeout: comp.settings.timeout,
+        success: function(response) {
+          comp.state.success = true;
+          comp.data = response;
+        },
+        error: function(jqXHR, status, message) {
+          comp.state.error = true;
+          if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+            comp.state.message = jqXHR.responseJSON.message;
+          } else {
+            if (status === 'timeout') {
+              comp.state.message = comp.settings.timeoutMessage;
+            } else if (message) {
+              comp.state.message = message;
             } else {
-              if (status === 'timeout') {
-                comp.state.message = comp.settings.timeoutMessage;
-              } else if (message) {
-                comp.state.message = message;
-              } else {
-                comp.state.message = comp.settings.errorMessage;
-              }
+              comp.state.message = comp.settings.errorMessage;
             }
-          },
-          complete: function() {
-            comp.state.loading = false;
-            comp.updateDOM(callback)
           }
-        });
-
+        },
+        complete: function() {
+          comp.state.loading = false;
+          comp.updateDOM(callback)
+        }
       });
-      
-    } else {
-      throw comp.settings.notReadyMessage;
-    }
+
+    });
     
   }
 
