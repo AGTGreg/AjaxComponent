@@ -14,7 +14,11 @@ function AjaxComponent(DOMElement) {
     notReadyMessage: "AjaxComponent is still loading.",
   };
 
-  this.data = {};
+  this.data = {
+    "ad": {
+      "yo": ["a", "b", "c"]
+    }
+  };
   this.elements = {};
   this.methods = {};
 
@@ -206,9 +210,98 @@ function AjaxComponent(DOMElement) {
     return params;
   }
 
+  this.render = function() {
+    const comp = this;
+
+    // Executes the specified method if it exists as a build-in method (getters) or in component's methods
+    const evalIf = function(method) {
+      console.log('==> Evaluating ' + method);
+      const buildinMethods = ['isLoading', 'isSuccessful', 'hasError']
+      if (buildinMethods.includes(method)) {
+        return comp[method]();
+      } else if (method in comp.methods) {
+        return comp.methods[method]()
+      }
+      return false;
+    }
+
+    const evalFor = function(statement) {
+      console.log('==> For ' + statement);
+      // Statement has this form: "item in data.items". So split it to get the var name we need to export and the
+      // iterable.
+      stParts = statement.split(' in ');
+
+      // Split in case iterObjectkeys is like data.something and go deeper into the data one key at a time like so:
+      // comp.data => comp.data[key] => comp.data[key][key2] => ...
+      // Return the data or stop and return false as soon as a key does not exist.
+      iterObjectkeys = stParts[1].split('.');
+      const getKeyInData = function(data, key) {
+        console.log('==> Checking for ' + key);
+        if (data[key] !== undefined) return data[key];
+        return false;
+      }
+      let iterable = comp.data;
+      for (let i=0; i<iterObjectkeys.length; i++) {
+        iterable = getKeyInData(iterable, iterObjectkeys[i]);
+      }
+      if (iterable === false) return false;
+
+      return {'itemName': stParts[0], 'iterable': iterable};
+    }
+
+    const insertNodeAfter = function(el, referenceNode) {
+      referenceNode.parentNode.insertBefore(el, referenceNode.nextSibling);
+    }
+
+    const placeData = function() {
+      
+    }
+
+    // Processes nodes recursivelly. Hides and skips the nodes who evaluate to false.
+    const processNode = function(node) {
+      console.log(node);
+      const attrs = node.getAttributeNames();
+      if (attrs) {
+        for (let i=0; i<attrs.length; i++) {
+          if (attrs[i] === 'c-if') {
+            if (evalIf(node.getAttribute(attrs[i])) === false) {
+              node.style.display = 'none';
+              return;
+            } else {
+              node.style.removeProperty('display');
+            }
+          } else if (attrs[i] === 'c-for') {
+            const cFor = evalFor(node.getAttribute(attrs[i]));
+            if (cFor === false) {
+              node.style.display = 'none';
+              return;
+            } else {
+              // Show the original node and append as many as the items in the iterable.
+              node.style.removeProperty('display');
+              for (let f=1; f<cFor.iterable.length; f++) {
+                let newNode = node.cloneNode(true);
+                newNode.removeAttribute('c-for');
+                insertNodeAfter(newNode, node);
+              }
+            }
+          }
+        }
+      }
+
+      if (node.hasChildNodes()) {
+        for (let c=0; c<node.children.length; c++) {
+          processNode(node.children[c]);
+        }
+      }
+    }
+
+    processNode(comp.DOMElement)
+  }
+
   this.init = function() {
     this.state.success = true;
-    this.updateDOM();
+    this.render();
+    // this.updateDOM();
   }
   this.init();
 
