@@ -198,7 +198,7 @@ function AjaxComponent(DOMElement) {
           return false;
         }
 
-        node.removeAttribute(attr);
+        node.removeAttribute('c-if');
         return true;
       },
 
@@ -227,7 +227,6 @@ function AjaxComponent(DOMElement) {
       }
     }
 
-
     // Iterates the node tree and replaces the {} with data values.
     // :rootDataObject is the root object that the searchComponent will start from in order to get the data. The
     // default is comp.
@@ -243,18 +242,15 @@ function AjaxComponent(DOMElement) {
       while (walker.nextNode()) {
         let nodeVal = walker.currentNode.nodeValue;
 
-        // Iterate over the props (if any) and replace it with a value.
+        // Iterate over the props (if any) and replace it with the appropriate value.
         const props = nodeVal.match(/{([^}]+)}/g);
         if (props) {
           for (let i=0; i<props.length; i++) {
             const prop = props[i];
             const propName = prop.replace(/{|}/g , '');
             let propKeys = propName.split('.');
-
             if (rootDataObject === undefined) rootDataObject = comp
             if (itemAlias === propKeys[0]) propKeys.shift();
-            console.log(rootDataObject);
-            console.log(propKeys);
 
             const propValue = searchComponent(rootDataObject, propKeys);
             console.log(prop + ' => ' + propName + ' | Replacing with: ' + propValue);

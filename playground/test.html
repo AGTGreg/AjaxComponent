@@ -13,7 +13,6 @@
 <body>
   
   <div id="myAjaxComponent">
-
     <div c-if="isLoading" class="loading">
       <span c-if="loadingChild" class="thisisachild"></span>
       Loading...
@@ -32,7 +31,15 @@
       <div c-if="testIf">Something</div>
     </div>
 
-    <div c-for="item in data.data">{item.id}</div>
+    <table c-if="isSuccessful">
+      <tbody>
+        <tr c-for="item in data.data" id="item-{item.id}">
+          <td>{item.id}</td>
+          <td>{item.first_name} {item.last_name}</td>
+          <td>{item.email}</td>
+        </tr>
+      </tbody>
+    </table>
     
     <button class="updateBtn">Update</button>
   </div>
