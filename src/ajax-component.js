@@ -169,6 +169,19 @@ function AjaxComponent(DOMElement) {
   this.render = function(callback) {
     const comp = this;
 
+    // Get the data or method from the root object one key at a time like so:
+    // comp.data => comp.data[key] => comp.data[key][key2] => ...
+    // Return the result or stop and return false as soon as a key does not exist.
+    const searchComponent = function(root, keys) {
+      for (let i=0; i<keys.length; i++) {
+        root = root[keys[i]];
+        console.log('==> Search for ' + keys[i] + ' in root returns:');
+        console.log(root);
+        if (root == undefined) break;
+      }
+      return root;
+    }
+
     const evalMethods = {
       'c-if': function(method) {
         const buildinMethods = ['isLoading', 'isSuccessful', 'hasError']
@@ -183,33 +196,45 @@ function AjaxComponent(DOMElement) {
       'c-for': function(statement) {
         // Get the return item name and the iterable
         stParts = statement.split(' in ');
-
-        // Split in case iterObjectkeys is like data.something and go deeper into the data one key at a time like so:
-        // comp.data => comp.data[key] => comp.data[key][key2] => ...
-        // Return the data or stop and return false as soon as a key does not exist.
         iterObjectkeys = stParts[1].split('.');
-        const getKeyInData = function(data, key) {
-          if (data[key] !== undefined) return data[key];
-          return false;
-        }
-        let iterable = comp.data;
-        for (let i=0; i<iterObjectkeys.length; i++) {
-          iterable = getKeyInData(iterable, iterObjectkeys[i]);
-        }
-        if (iterable === false) return false;
-        return {'itemName': stParts[0], 'iterable': iterable};
+        let iterable = searchComponent(comp, iterObjectkeys);
+
+        if (iterable) {
+          return {'itemName': stParts[0], 'iterable': iterable};
+        } 
+        return false;
       }
     }
 
-    const updatePlaceholders = function(text) {
+    const updatePlaceholders = function(nodeTree) {
+      // Iterates the node tree and replaces the {} with data values.
       console.log('==> Updating placeholders.');
+
+      // Iterate over all text nodes
+      var walker = document.createTreeWalker(nodeTree, NodeFilter.SHOW_TEXT)
+      while (walker.nextNode()) {
+        let nodeVal = walker.currentNode.nodeValue;
+
+        // Iterate over the props (if any) and replace it with a value.
+        const props = nodeVal.match(/{([^}]+)}/g);
+        if (props) {
+          for (let i=0; i<props.length; i++) {
+            const prop = props[i];
+            const propName = prop.replace(/{|}/g , '');
+            const propValue = searchComponent(comp, propName.split('.'));
+            console.log(prop + ' => ' + propName + ' | Replacing with: ' + propValue);
+            nodeVal = nodeVal.replace(prop, propValue);
+            console.log(nodeVal);
+          }
+          walker.currentNode.nodeValue = nodeVal;
+        }
+      }
     }
 
     // Processes nodes recursivelly in reverse. Evaluates the nodes based on their attributes.
     // Removes and skips the nodes who evaluate to false.
     const processNode = function(node) {
       const attrs = node.getAttributeNames();
-      
       for (let i=0; i<attrs.length; i++) {
         if (attrs[i] in evalMethods) {
           const attr = attrs[i];
@@ -238,14 +263,17 @@ function AjaxComponent(DOMElement) {
     }
 
     let tmpDOM = comp.originalDOM.cloneNode(true);
+    
     processNode(tmpDOM);
+    updatePlaceholders(tmpDOM);
+
+    console.log('==> Processed node tree:');
     console.log(tmpDOM);
     this.DOMElement.innerHTML = tmpDOM.innerHTML;
     if (callback instanceof Function) callback();
   }
 
   this.init = function() {
-    this.DOMElement.innerHTML = "";
     this.state.success = true;
     this.render();
   }

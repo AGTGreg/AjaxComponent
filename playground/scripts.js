@@ -11,7 +11,7 @@ $(document).ready(function() {
   };
 
   myAjaxComponent.elements.updateBtn.on('click', function() {
-    myAjaxComponent.update('', function() {
+    myAjaxComponent.update({page: 1}, function() {
       myAjaxComponent.elements.content.text(JSON.stringify(myAjaxComponent.data));
     });
   });

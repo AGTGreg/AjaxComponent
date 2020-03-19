@@ -27,13 +27,16 @@
     </div>
     <div c-if="isSuccessful" class="content">
       <p>This is the component's content.</p>
-      <p>{data.page} {somedata}</p>
+      <p><span>{data.page}</span> <span>{somedata}</span></p>
+      <div>
+        <p c-if="comething">This is a nested element that evaluates to false</p>
+      </div>
     </div>
     <div>
       <div c-if="testIf">Something</div>
     </div>
 
-    <div c-for="item in ad.yo">{item}</div>
+    <div c-for="item in data.data">{item}</div>
     
     <button class="updateBtn">Update</button>
   </div>
