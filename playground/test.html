@@ -18,20 +18,23 @@
   
   <div id="myAjaxComponent">
 
-    <div c-if="isLoading" class="loading"><span class="thisisachild"></span>Loading...</div>
+    <div c-if="isLoading" class="loading">
+      <span class="thisisachild"></span>
+      Loading...
+    </div>
+    <div c-if="something">Something</div>
     <div c-if="hasError" class="error">
       <p c-if="message">Something went wrong.</p>
     </div>
     <div c-if="isSuccessful" class="content">
       <p>This is the component's content.</p>
-      <p>{data.page} {something}</p>
+      <p>{data.page} {somedata}</p>
     </div>
-
-    <div c-for="item in ad.yo">{item}</div>
-
     <div>
       <div c-if="something">Something</div>
     </div>
+
+    <div c-for="item in ad.yo">{item}</div>
     
     <button class="updateBtn">Update</button>
   </div>

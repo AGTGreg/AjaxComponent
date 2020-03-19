@@ -14,11 +14,7 @@ function AjaxComponent(DOMElement) {
     notReadyMessage: "AjaxComponent is still loading.",
   };
 
-  this.data = {
-    "ad": {
-      "yo": ["a", "b", "c"]
-    }
-  };
+  this.data = {};
   this.elements = {};
   this.methods = {};
 
@@ -55,45 +51,6 @@ function AjaxComponent(DOMElement) {
     return Object.assign(this.settings.urlParams, params);
   }
 
-  this.updateDOM = function(callback) {
-    const comp = this;
-    // c-if ------------------------------------------------------------------------------------------------------------
-    comp.DOMElement.querySelectorAll('[c-if]').forEach(el => {
-      
-        let attr = el.getAttribute('c-if');
-        
-        if (attr === 'isLoading') {
-          if (comp.isLoading()) {
-            el.classList.add('show');
-            el.classList.remove('hide');
-          } else {
-            el.classList.add('hide');
-            el.classList.remove('show');
-          }
-
-        } else if (attr === 'hasError') {
-          if (comp.hasError()) {
-            el.classList.add('show');
-            el.classList.remove('hide');
-          } else {
-            el.classList.add('hide');
-            el.classList.remove('show');
-          }
-        } else if (attr === 'isSuccessful' || attr === 'isReady') {
-          if (comp.isSuccessful()) {
-            el.classList.add('show');
-            el.classList.remove('hide');
-          } else {
-            el.classList.add('hide');
-            el.classList.remove('show');
-          }
-        }
-
-    });
-
-    if (callback instanceof Function) callback();
-  }
-
   this.update = function(params, callback) {
     this.makeRequest('GET', params, callback); 
   }
@@ -106,7 +63,7 @@ function AjaxComponent(DOMElement) {
 
     comp.reset();
     comp.state.loading = true;
-    comp.updateDOM(function() {
+    comp.render(function() {
 
       $.ajax({
         url: comp.settings.baseUrl, data: comp.settings.urlParams,
@@ -132,7 +89,7 @@ function AjaxComponent(DOMElement) {
         },
         complete: function() {
           comp.state.loading = false;
-          comp.updateDOM(callback)
+          comp.render(callback)
         }
       });
 
@@ -210,14 +167,15 @@ function AjaxComponent(DOMElement) {
     return params;
   }
 
-  this.render = function() {
+  this.render = function(callback) {
     const comp = this;
 
     // Executes the specified method if it exists as a build-in method (getters) or in component's methods
     const evalIf = function(method) {
-      console.log('==> Evaluating ' + method);
+      console.log('==> Eval ' + method);
       const buildinMethods = ['isLoading', 'isSuccessful', 'hasError']
       if (buildinMethods.includes(method)) {
+        console.log(comp[method]());
         return comp[method]();
       } else if (method in comp.methods) {
         return comp.methods[method]()
@@ -226,7 +184,6 @@ function AjaxComponent(DOMElement) {
     }
 
     const evalFor = function(statement) {
-      console.log('==> For ' + statement);
       // Statement has this form: "item in data.items". So split it to get the var name we need to export and the
       // iterable.
       stParts = statement.split(' in ');
@@ -236,7 +193,6 @@ function AjaxComponent(DOMElement) {
       // Return the data or stop and return false as soon as a key does not exist.
       iterObjectkeys = stParts[1].split('.');
       const getKeyInData = function(data, key) {
-        console.log('==> Checking for ' + key);
         if (data[key] !== undefined) return data[key];
         return false;
       }
@@ -259,7 +215,6 @@ function AjaxComponent(DOMElement) {
 
     // Processes nodes recursivelly. Hides and skips the nodes who evaluate to false.
     const processNode = function(node) {
-      console.log(node);
       const attrs = node.getAttributeNames();
       if (attrs) {
         for (let i=0; i<attrs.length; i++) {
@@ -296,6 +251,7 @@ function AjaxComponent(DOMElement) {
     }
 
     processNode(comp.DOMElement)
+    if (callback instanceof Function) callback();
   }
 
   this.init = function() {
