@@ -1,8 +1,7 @@
 function AjaxComponent(DOMElement) {
 
-  if (DOMElement) {
-    this.DOMElement = DOMElement;
-  }
+  this.DOMElement = DOMElement;
+  this.originalDOM = DOMElement.cloneNode(true);
 
   this.settings = {
     baseUrl: null,
@@ -11,7 +10,7 @@ function AjaxComponent(DOMElement) {
     cacheResults: true,
     timeoutMessage: "The request has timed out",
     errorMessage: "Something went wrong",
-    notReadyMessage: "AjaxComponent is still loading.",
+    notReadyMessage: "Component is still loading.",
   };
 
   this.data = {};
@@ -170,94 +169,85 @@ function AjaxComponent(DOMElement) {
   this.render = function(callback) {
     const comp = this;
 
-    // Executes the specified method if it exists as a build-in method (getters) or in component's methods
-    const evalIf = function(method) {
-      console.log('==> Eval ' + method);
-      const buildinMethods = ['isLoading', 'isSuccessful', 'hasError']
-      if (buildinMethods.includes(method)) {
-        console.log(comp[method]());
-        return comp[method]();
-      } else if (method in comp.methods) {
-        return comp.methods[method]()
-      }
-      return false;
-    }
-
-    const evalFor = function(statement) {
-      // Statement has this form: "item in data.items". So split it to get the var name we need to export and the
-      // iterable.
-      stParts = statement.split(' in ');
-
-      // Split in case iterObjectkeys is like data.something and go deeper into the data one key at a time like so:
-      // comp.data => comp.data[key] => comp.data[key][key2] => ...
-      // Return the data or stop and return false as soon as a key does not exist.
-      iterObjectkeys = stParts[1].split('.');
-      const getKeyInData = function(data, key) {
-        if (data[key] !== undefined) return data[key];
+    const evalMethods = {
+      'c-if': function(method) {
+        const buildinMethods = ['isLoading', 'isSuccessful', 'hasError']
+        if (buildinMethods.includes(method)) {
+          return comp[method]();
+        } else if (method in comp.methods) {
+          return comp.methods[method]()
+        }
         return false;
+      },
+
+      'c-for': function(statement) {
+        // Get the return item name and the iterable
+        stParts = statement.split(' in ');
+
+        // Split in case iterObjectkeys is like data.something and go deeper into the data one key at a time like so:
+        // comp.data => comp.data[key] => comp.data[key][key2] => ...
+        // Return the data or stop and return false as soon as a key does not exist.
+        iterObjectkeys = stParts[1].split('.');
+        const getKeyInData = function(data, key) {
+          if (data[key] !== undefined) return data[key];
+          return false;
+        }
+        let iterable = comp.data;
+        for (let i=0; i<iterObjectkeys.length; i++) {
+          iterable = getKeyInData(iterable, iterObjectkeys[i]);
+        }
+        if (iterable === false) return false;
+        return {'itemName': stParts[0], 'iterable': iterable};
       }
-      let iterable = comp.data;
-      for (let i=0; i<iterObjectkeys.length; i++) {
-        iterable = getKeyInData(iterable, iterObjectkeys[i]);
-      }
-      if (iterable === false) return false;
-
-      return {'itemName': stParts[0], 'iterable': iterable};
     }
 
-    const insertNodeAfter = function(el, referenceNode) {
-      referenceNode.parentNode.insertBefore(el, referenceNode.nextSibling);
+    const updatePlaceholders = function(text) {
+      console.log('==> Updating placeholders.');
     }
 
-    const placeData = function() {
-      
-    }
-
-    // Processes nodes recursivelly. Hides and skips the nodes who evaluate to false.
+    // Processes nodes recursivelly in reverse. Evaluates the nodes based on their attributes.
+    // Removes and skips the nodes who evaluate to false.
     const processNode = function(node) {
       const attrs = node.getAttributeNames();
-      if (attrs) {
-        for (let i=0; i<attrs.length; i++) {
-          if (attrs[i] === 'c-if') {
-            if (evalIf(node.getAttribute(attrs[i])) === false) {
-              node.style.display = 'none';
-              return;
-            } else {
-              node.style.removeProperty('display');
-            }
-          } else if (attrs[i] === 'c-for') {
-            const cFor = evalFor(node.getAttribute(attrs[i]));
-            if (cFor === false) {
-              node.style.display = 'none';
-              return;
-            } else {
-              // Show the original node and append as many as the items in the iterable.
-              node.style.removeProperty('display');
-              for (let f=1; f<cFor.iterable.length; f++) {
-                let newNode = node.cloneNode(true);
-                newNode.removeAttribute('c-for');
-                insertNodeAfter(newNode, node);
-              }
-            }
+      
+      for (let i=0; i<attrs.length; i++) {
+        if (attrs[i] in evalMethods) {
+          const attr = attrs[i];
+          const result = evalMethods[attr](node.getAttribute(attr));
+          console.log('==> ' + attr + ' ' + node.getAttribute(attr) + ' is ' + result);
+          if (result === false) {
+            node.remove();
+            return;
+          } else {
+            node.removeAttribute(attr)
+            break;
           }
         }
       }
 
       if (node.hasChildNodes()) {
-        for (let c=0; c<node.children.length; c++) {
-          processNode(node.children[c]);
+        for (let c=node.childElementCount - 1; c >= 0; c--) {
+          if (node.children[c]) {
+            processNode(node.children[c]);
+          } else {
+            break;
+          }
         }
       }
+
     }
 
-    processNode(comp.DOMElement)
+    let tmpDOM = comp.originalDOM.cloneNode(true);
+    processNode(tmpDOM);
+    console.log(tmpDOM);
+    this.DOMElement.innerHTML = tmpDOM.innerHTML;
     if (callback instanceof Function) callback();
   }
 
   this.init = function() {
+    this.DOMElement.innerHTML = "";
     this.state.success = true;
     this.render();
-    // this.updateDOM();
   }
   this.init();
 

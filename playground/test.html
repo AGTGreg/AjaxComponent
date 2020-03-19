@@ -19,10 +19,9 @@
   <div id="myAjaxComponent">
 
     <div c-if="isLoading" class="loading">
-      <span class="thisisachild"></span>
+      <span c-if="loadingChild" class="thisisachild"></span>
       Loading...
     </div>
-    <div c-if="something">Something</div>
     <div c-if="hasError" class="error">
       <p c-if="message">Something went wrong.</p>
     </div>
@@ -31,7 +30,7 @@
       <p>{data.page} {somedata}</p>
     </div>
     <div>
-      <div c-if="something">Something</div>
+      <div c-if="testIf">Something</div>
     </div>
 
     <div c-for="item in ad.yo">{item}</div>
