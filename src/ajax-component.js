@@ -183,31 +183,59 @@ function AjaxComponent(DOMElement) {
     }
 
     const evalMethods = {
-      'c-if': function(method) {
+      'c-if': function(node) {
         const buildinMethods = ['isLoading', 'isSuccessful', 'hasError']
-        if (buildinMethods.includes(method)) {
-          return comp[method]();
+        const attr = node.getAttribute('c-if');
+        let method;
+        if (buildinMethods.includes(attr)) {
+          method = comp[attr]();
         } else if (method in comp.methods) {
-          return comp.methods[method]()
+          method = comp.methods[attr]();
         }
-        return false;
+
+        if (method === undefined || method === false) {
+          node.remove();
+          return false;
+        }
+
+        node.removeAttribute(attr);
+        return true;
       },
 
-      'c-for': function(statement) {
-        // Get the return item name and the iterable
-        stParts = statement.split(' in ');
-        iterObjectkeys = stParts[1].split('.');
-        let iterable = searchComponent(comp, iterObjectkeys);
+
+      'c-for': function(node) {
+        const attr = node.getAttribute('c-for');
+
+        // Get the itemAlias and the iterable in (itemAlias in iterable)
+        stParts = attr.split(' in ');
+        const itemAlias = stParts[0];
+        objectKeys = stParts[1].split('.');
+        const iterable = searchComponent(comp, objectKeys);
+
+        node.removeAttribute('c-for');
 
         if (iterable) {
-          return {'itemName': stParts[0], 'iterable': iterable};
-        } 
+          iterable.forEach(item => {
+            newNode = node.cloneNode(true);
+            updatePlaceholders(newNode, item, itemAlias);
+            node.parentNode.insertBefore(newNode, node);
+          });
+        }
+
+        node.remove();
         return false;
       }
     }
 
-    const updatePlaceholders = function(nodeTree) {
-      // Iterates the node tree and replaces the {} with data values.
+
+    // Iterates the node tree and replaces the {} with data values.
+    // :rootDataObject is the root object that the searchComponent will start from in order to get the data. The
+    // default is comp.
+    // :itemAlias is the first key of the propName and if it is provided, it will be removed from the keys in 
+    // propNames. This is handy in case this method is called from a c-for loop:
+    // for item in itemsList: {item.id}
+    // The propName is item.id and the itemAlias is the item. So in this case item.id will become id.
+    const updatePlaceholders = function(nodeTree, rootDataObject, itemAlias) {
       console.log('==> Updating placeholders.');
 
       // Iterate over all text nodes
@@ -221,7 +249,14 @@ function AjaxComponent(DOMElement) {
           for (let i=0; i<props.length; i++) {
             const prop = props[i];
             const propName = prop.replace(/{|}/g , '');
-            const propValue = searchComponent(comp, propName.split('.'));
+            let propKeys = propName.split('.');
+
+            if (rootDataObject === undefined) rootDataObject = comp
+            if (itemAlias === propKeys[0]) propKeys.shift();
+            console.log(rootDataObject);
+            console.log(propKeys);
+
+            const propValue = searchComponent(rootDataObject, propKeys);
             console.log(prop + ' => ' + propName + ' | Replacing with: ' + propValue);
             nodeVal = nodeVal.replace(prop, propValue);
             console.log(nodeVal);
@@ -238,13 +273,11 @@ function AjaxComponent(DOMElement) {
       for (let i=0; i<attrs.length; i++) {
         if (attrs[i] in evalMethods) {
           const attr = attrs[i];
-          const result = evalMethods[attr](node.getAttribute(attr));
+          const result = evalMethods[attr](node);
           console.log('==> ' + attr + ' ' + node.getAttribute(attr) + ' is ' + result);
           if (result === false) {
-            node.remove();
             return;
           } else {
-            node.removeAttribute(attr)
             break;
           }
         }
