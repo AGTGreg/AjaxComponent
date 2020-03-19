@@ -238,9 +238,40 @@ function AjaxComponent(DOMElement) {
       console.log('==> Updating placeholders.');
 
       // Iterate over all text nodes
-      var walker = document.createTreeWalker(nodeTree, NodeFilter.SHOW_TEXT)
-      while (walker.nextNode()) {
-        let nodeVal = walker.currentNode.nodeValue;
+      var walker = document.createTreeWalker(
+        nodeTree, NodeFilter.SHOW_ALL, {
+          acceptNode: function(node) {
+            let test1 = false;
+            let test2 = false;
+            if (node.nodeType === 3) {
+              if ( /{([^}]+)}/.test(node.data) ) {
+                test1 = true;
+              } 
+            } else if (node.nodeType === 1) {
+              let attrs = node.getAttributeNames();
+              for (let i=0; i<attrs.length; i++) {
+                if ( /{([^}]+)}/.test(node.getAttribute(attrs[i])) ) {
+                  test2 = true;
+                }
+              }
+            }
+
+            if (test1 || test2) return NodeFilter.FILTER_ACCEPT;
+          }
+      });
+
+      var textWalker = document.createTreeWalker(
+        nodeTree, NodeFilter.SHOW_TEXT, {
+          acceptNode: function(node) {
+            if ( /{([^}]+)}/.test(node.data) ) {
+              return NodeFilter.FILTER_ACCEPT;
+            }
+          }
+      });
+
+      while (textWalker.nextNode()) {
+        let nodeVal = textWalker.currentNode.nodeValue;
+        console.log(nodeVal);
 
         // Iterate over the props (if any) and replace it with the appropriate value.
         const props = nodeVal.match(/{([^}]+)}/g);
@@ -257,7 +288,7 @@ function AjaxComponent(DOMElement) {
             nodeVal = nodeVal.replace(prop, propValue);
             console.log(nodeVal);
           }
-          walker.currentNode.nodeValue = nodeVal;
+          textWalker.currentNode.nodeValue = nodeVal;
         }
       }
     }
