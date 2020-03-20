@@ -5,57 +5,97 @@
   <title>Ajax Component Test</title>
   <meta name="description" content="Ajax Component Test">
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+
   <script src="../src/ajax-component.js"></script>
 
 </head>
 
 <body>
-  
-  <div id="myAjaxComponent">
-    <div c-if="isLoading" class="loading">
-      <span c-if="loadingChild" class="thisisachild"></span>
-      Loading...
-    </div>
 
-    <div c-if="hasError" class="error">
-      <p c-if="message">Something went wrong.</p>
-    </div>
-    
-    <div c-if="isReady" class="content">
-      <p>This is the component's content.</p>
-      <p><span>{data.page}</span> <span>{somedata}</span></p>
-      <div>
-        <p c-if="comething">This is a nested element that evaluates to false</p>
+  <header>
+    <div class="jumbotron jumbotron-fluid">
+      <div class="container">
+        <h1 class="display-4">AjaxComponent</h1>
+        <p class="lead">Simply built tiny Apps for the web</p>
       </div>
     </div>
+  </header>
+
+  <div id="app" class="container">
+    <button id="btnLoadData" type="button" class="btn btn-primary">Load some data</button>
+    <button id="btnError" type="button" class="btn btn-danger">Produce an error</button>
+
     <div>
-      <div c-if="testIf">Something</div>
+      <hr />
     </div>
 
-    <table c-if="isSuccessful">
-      <tbody>
-        <tr c-for="item in data.data" id="item-{item.id}">
-          <td>{item.id}</td>
-          <td>{item.first_name} {item.last_name}</td>
-          <td>{item.email}</td>
-        </tr>
-      </tbody>
-    </table>
-    
-    <button class="updateBtn">Update</button>
+    <div class="row">
 
-    <div c-if="todos">
-      <h2>This is todos</h2>
-      <ul>
-        <li c-for="todo in todos">
-          <span>{todo.title}</span>
-        </li>
-      </ul>
-    </div>
+      <div c-if="hasError" class="col-md-12">
+        <div class="alert alert-danger" role="alert">
+          {message}
+        </div>
+      </div>
     
+
+      <div c-if="isLoading" class="col-md-12">
+        <div class="text-center">
+          <h2>Loading</h2>
+          <div class="spinner-border" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+        </div>
+      </div>
+
+      <div c-if="isSuccessful" class="col-md-12">
+        <table class="table">
+          <thead class="thead-dark">
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Name</th>
+              <th scope="col">Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr c-for="user in users">
+              <td>{user.id}</td>
+              <td>{user.first_name} {user.last_name}</td>
+              <td>{user.email}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <hr />
+
+  <div id="todoApp" class="container">
+    <h2>Todo list</h2>
+    <hr />
+
+    <div class="row">
+      <div class="col-md-12">
+        
+        <div class="form-group">
+          <input type="text" class="form-control" id="todoInput" placeholder="Add a todo">
+        </div>
+        
+        <ul c-if="todos" class="list-group">
+          <li c-for="todo in todos" class="list-group-item">{todo.title}</li>
+        </ul>
+
+      </div>
+    </div>
   </div>
 
   <script src="scripts.js"></script>
+
 </body>
 </html>

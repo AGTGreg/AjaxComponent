@@ -72,7 +72,7 @@ var AjaxComponent = function(config) {
 
   this.makeRequest = function(method, params, callback) {
     const comp = this;
-    if (comp.isLoading()) return;
+    if (comp.state.loading) return;
 
     if (params) this.updateParams(params);
 
