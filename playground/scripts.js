@@ -1,4 +1,15 @@
 
+var timer = function(name) {
+  var start = new Date();
+  return {
+      stop: function() {
+          var end  = new Date();
+          var time = end.getTime() - start.getTime();
+          console.log('Timer:', name, 'finished in', time, 'ms');
+      }
+  }
+};
+
 var comp = new AjaxComponent({
   el: document.getElementById('app'),
   
@@ -55,7 +66,9 @@ $(document).ready(function() {
         todoApp.data.todos.push(
           { id: nextId, title: $(e.target).val(), done: false }
         );
+        var t = timer('Render');
         todoApp.render(() => $('#todoApp #todoInput').focus());
+        t.stop();
       }
     }
   });
@@ -63,6 +76,8 @@ $(document).ready(function() {
     const $this = $(e.target);
   });
 
+  
+  var t = timer('Render');
   for (let i=0; i<100; i++) {
     const nextId = todoApp.data.todos.length + 1;
     todoApp.data.todos.push(
@@ -70,5 +85,6 @@ $(document).ready(function() {
     );
     todoApp.render();
   }
+  t.stop();
 
 });

@@ -257,6 +257,7 @@ var AjaxComponent = function(config) {
     // for item in itemsList: {item.id}
     // The propName is item.id and the itemAlias is the item. So in this case item.id will become id.
     const getPropValue = function(prop, rootDataObject, itemAlias) {
+      if ( /{([^}]+)}/.test(prop) === false ) return; 
       const propName = prop.replace(/{|}/g , '');
       let propKeys = propName.split('.');
       if (rootDataObject === undefined) rootDataObject = comp
@@ -302,20 +303,19 @@ var AjaxComponent = function(config) {
     // Processes nodes recursivelly in reverse. Evaluates the nodes based on their attributes.
     // Removes and skips the nodes who evaluate to false.
     const processNode = function(node) {
-      const attrs = node.getAttributeNames();
+      const attrs = node.attributes;
       for (let i=0; i<attrs.length; i++) {
-        if (attrs[i] in evalMethods) {
-          const attr = attrs[i];
+        if (attrs[i].name in evalMethods) {
+          const attr = attrs[i].name;
           const result = evalMethods[attr](node);
           if (result === false) {
             return;
-          } else {
-            break;
           }
+        } else {
+          const prop = getPropValue(attrs[i].value);
+          if (prop) attrs[i].value = prop;
         }
       }
-
-      updateAttributePlaceholders(node);
 
       if (node.hasChildNodes()) {
         for (let c=node.childElementCount - 1; c >= 0; c--) {
