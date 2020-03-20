@@ -1,13 +1,34 @@
-var myAjaxComponent = new AjaxComponent(document.getElementById('myAjaxComponent'));
+
+var myAjaxComponent = new AjaxComponent({
+  el: document.getElementById('myAjaxComponent'),
+  
+  settings: {
+    baseUrl: 'https://reqres.in/api/users',
+    timeout: 1000
+  },
+  
+  data: {
+    todos: [
+      {id: 1, title: "This is a todo"}
+    ]
+  },
+
+  methods: {
+    todos() {
+      if ('todos' in this.Parent.data) {
+        return this.Parent.data.todos;
+      } else {
+        return false;
+      }
+    }
+  }
+});
 
 $(document).ready(function() {
 
-  myAjaxComponent.settings.baseUrl = 'https://reqres.in/api/users';
-  myAjaxComponent.settings.timeout = 1000;
-
   myAjaxComponent.elements = {
-    content: $(myAjaxComponent.DOMElement).find('.content'),
-    updateBtn: $(myAjaxComponent.DOMElement).find('.updateBtn'),
+    content: $(myAjaxComponent.el).find('.content'),
+    updateBtn: $(myAjaxComponent.el).find('.updateBtn'),
   };
 
   myAjaxComponent.elements.updateBtn.on('click', function() {

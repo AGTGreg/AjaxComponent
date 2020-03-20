@@ -1,49 +1,65 @@
-function AjaxComponent(DOMElement) {
+var AjaxComponent = function(config) {
 
-  this.DOMElement = DOMElement;
-  this.originalDOM = DOMElement.cloneNode(true);
+  // Initialize all the properties from the config or exit if no config is provided.
+  if (config !== undefined) {
+    
+    if (! config.el) throw "==> el is not set or not present in DOM. Set el to a valid DOM element on init.";
+    
+    this.el = config.el;
+    this.originalDOM = this.el.cloneNode(true);
+    
+    this.settings = {
+      baseUrl: null,
+      urlParams: {},
+      timeout: 5000,
+      cacheResults: true,
+      timeoutMessage: "The request has timed out",
+      errorMessage: "Something went wrong",
+      notReadyMessage: "Component is still loading.",
+    };
+    if (config.settings instanceof Object) Object.assign(this.settings, config.settings);
 
-  this.settings = {
-    baseUrl: null,
-    urlParams: {},
-    timeout: 5000,
-    cacheResults: true,
-    timeoutMessage: "The request has timed out",
-    errorMessage: "Something went wrong",
-    notReadyMessage: "Component is still loading.",
-  };
+    this.state = {
+      loading: false,
+      error: false,
+      success: false,
+      message: '',
+    };
 
-  this.data = {};
-  this.elements = {};
-  this.methods = {};
+    this.data = {};
+    if (config.data instanceof Object) this.data = config.data;
 
-  this.state = {
-    loading: false,
-    error: false,
-    success: false,
-    message: '',
-  };
+    this.elements = {};
+    if (config.elements instanceof Object) this.elements = config.elements;
 
-  // Getters
-  this.isLoading = function() {
-    return this.state.loading;
+    this.methods = {
+      Parent: this,
+      isLoading() {
+        return this.Parent.state.loading;
+      },
+      isSuccessful() {
+        return this.Parent.state.success;
+      },
+      hasError() {
+        return this.Parent.state.error;
+      },
+      message() {
+        return this.Parent.state.message;
+      }
+    };
+    if (config.methods instanceof Object) Object.assign(this.methods, config.methods);
+
+  } else {
+    return false;
   }
-  this.isSuccessful = function() {
-    return this.state.success;
-  }
-  this.hasError = function() {
-    return this.state.error;
-  }
-  this.message = function() {
-    return this.state.message;
-  }
+  
 
   // Built-in methods
   this.reset = function() {
-    this.state.loading = false,
-    this.state.error = false,
-    this.state.success = false,
-    this.state.message = null
+    this.state.loading = false;
+    this.state.error = false;
+    this.state.success = false;
+    this.state.message = null;
   }
 
   this.updateParams = function(params) {
@@ -62,6 +78,7 @@ function AjaxComponent(DOMElement) {
 
     comp.reset();
     comp.state.loading = true;
+
     comp.render(function() {
 
       $.ajax({
@@ -169,10 +186,16 @@ function AjaxComponent(DOMElement) {
   this.render = function(callback) {
     const comp = this;
 
-    // Get the data or method from the root object one key at a time like so:
-    // comp.data => comp.data[key] => comp.data[key][key2] => ...
-    // Return the result or stop and return false as soon as a key does not exist.
+    /*
+    Get the data or method specified in :root.
+    If the keys were fount in methods, return the method immediately.
+    If no method was found, then search in data one key at a time like so:
+    comp.data => comp.data[key] => comp.data[key][key2] => ...
+    Return the result or stop and return false as soon as a key does not exist.
+    */
     const searchComponent = function(root, keys) {
+      if (keys in comp.methods) return comp.methods[keys]();
+
       for (let i=0; i<keys.length; i++) {
         root = root[keys[i]];
         console.log('==> Search for ' + keys[i] + ' in root returns:');
@@ -184,12 +207,9 @@ function AjaxComponent(DOMElement) {
 
     const evalMethods = {
       'c-if': function(node) {
-        const buildinMethods = ['isLoading', 'isSuccessful', 'hasError']
         const attr = node.getAttribute('c-if');
         let method;
-        if (buildinMethods.includes(attr)) {
-          method = comp[attr]();
-        } else if (method in comp.methods) {
+        if (attr in comp.methods) {
           method = comp.methods[attr]();
         }
 
@@ -210,7 +230,7 @@ function AjaxComponent(DOMElement) {
         stParts = attr.split(' in ');
         const itemAlias = stParts[0];
         objectKeys = stParts[1].split('.');
-        const iterable = searchComponent(comp, objectKeys);
+        let iterable = searchComponent(comp, objectKeys);
 
         node.removeAttribute('c-for');
 
@@ -260,6 +280,7 @@ function AjaxComponent(DOMElement) {
           }
       });
 
+      // Create a new treeWalker with all visible text nodes that contain {};
       var textWalker = document.createTreeWalker(
         nodeTree, NodeFilter.SHOW_TEXT, {
           acceptNode: function(node) {
@@ -275,21 +296,19 @@ function AjaxComponent(DOMElement) {
 
         // Iterate over the props (if any) and replace it with the appropriate value.
         const props = nodeVal.match(/{([^}]+)}/g);
-        if (props) {
-          for (let i=0; i<props.length; i++) {
-            const prop = props[i];
-            const propName = prop.replace(/{|}/g , '');
-            let propKeys = propName.split('.');
-            if (rootDataObject === undefined) rootDataObject = comp
-            if (itemAlias === propKeys[0]) propKeys.shift();
+        for (let i=0; i<props.length; i++) {
+          const prop = props[i];
+          const propName = prop.replace(/{|}/g , '');
+          let propKeys = propName.split('.');
+          if (rootDataObject === undefined) rootDataObject = comp
+          if (itemAlias === propKeys[0]) propKeys.shift();
 
-            const propValue = searchComponent(rootDataObject, propKeys);
-            console.log(prop + ' => ' + propName + ' | Replacing with: ' + propValue);
-            nodeVal = nodeVal.replace(prop, propValue);
-            console.log(nodeVal);
-          }
-          textWalker.currentNode.nodeValue = nodeVal;
+          const propValue = searchComponent(rootDataObject, propKeys);
+          console.log(prop + ' => ' + propName + ' | Replacing with: ' + propValue);
+          nodeVal = nodeVal.replace(prop, propValue);
+          console.log(nodeVal);
         }
+        textWalker.currentNode.nodeValue = nodeVal;
       }
     }
 
@@ -329,14 +348,18 @@ function AjaxComponent(DOMElement) {
 
     console.log('==> Processed node tree:');
     console.log(tmpDOM);
-    this.DOMElement.innerHTML = tmpDOM.innerHTML;
+    this.el.innerHTML = tmpDOM.innerHTML;
     if (callback instanceof Function) callback();
   }
 
-  this.init = function() {
-    this.state.success = true;
+  this.Init = function() {
     this.render();
+    delete this.init;
+    return this;
   }
-  this.init();
+
+  this.Init();
+
+  return this;
 
 }

@@ -17,10 +17,12 @@
       <span c-if="loadingChild" class="thisisachild"></span>
       Loading...
     </div>
+
     <div c-if="hasError" class="error">
       <p c-if="message">Something went wrong.</p>
     </div>
-    <div c-if="isSuccessful" class="content">
+    
+    <div c-if="isReady" class="content">
       <p>This is the component's content.</p>
       <p><span>{data.page}</span> <span>{somedata}</span></p>
       <div>
@@ -42,6 +44,16 @@
     </table>
     
     <button class="updateBtn">Update</button>
+
+    <div c-if="todos">
+      <h2>This is todos</h2>
+      <ul>
+        <li c-for="todo in todos">
+          <span>{todo.title}</span>
+        </li>
+      </ul>
+    </div>
+    
   </div>
 
   <script src="scripts.js"></script>
