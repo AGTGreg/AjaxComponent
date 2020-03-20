@@ -84,11 +84,14 @@
       <div class="col-md-12">
         
         <div class="form-group">
-          <input type="text" class="form-control" id="todoInput" placeholder="Add a todo">
+          <input type="text" class="form-control" id="todoInput" placeholder="{placeholder}">
         </div>
         
         <ul c-if="todos" class="list-group">
-          <li c-for="todo in todos" class="list-group-item">{todo.title}</li>
+          <li c-for="todo in todos" class="list-group-item" data-key="{todo.id}" style="padding-left: 20px; padding-right: 20px;">
+            <input type="checkbox" class="check-done" style="margin-right: 20px;">
+            {todo.title}
+          </li>
         </ul>
 
       </div>

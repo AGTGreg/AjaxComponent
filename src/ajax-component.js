@@ -198,8 +198,6 @@ var AjaxComponent = function(config) {
 
       for (let i=0; i<keys.length; i++) {
         root = root[keys[i]];
-        console.log('==> Search for ' + keys[i] + ' in root returns:');
-        console.log(root);
         if (root == undefined) break;
       }
       return root;
@@ -237,7 +235,11 @@ var AjaxComponent = function(config) {
         if (iterable) {
           iterable.forEach(item => {
             newNode = node.cloneNode(true);
-            updatePlaceholders(newNode, item, itemAlias);
+            // Update the attributes
+            updateAttributePlaceholders(newNode, item, itemAlias);
+            // Update the text nodes
+            updateTextNodePlaceholders(newNode, item, itemAlias);
+
             node.parentNode.insertBefore(newNode, node);
           });
         }
@@ -254,63 +256,48 @@ var AjaxComponent = function(config) {
     // propNames. This is handy in case this method is called from a c-for loop:
     // for item in itemsList: {item.id}
     // The propName is item.id and the itemAlias is the item. So in this case item.id will become id.
-    const updatePlaceholders = function(nodeTree, rootDataObject, itemAlias) {
-      console.log('==> Updating placeholders.');
+    const getPropValue = function(prop, rootDataObject, itemAlias) {
+      const propName = prop.replace(/{|}/g , '');
+      let propKeys = propName.split('.');
+      if (rootDataObject === undefined) rootDataObject = comp
+      if (itemAlias === propKeys[0]) propKeys.shift();
+      return searchComponent(rootDataObject, propKeys);
+    }; 
 
-      // Iterate over all text nodes
-      var walker = document.createTreeWalker(
-        nodeTree, NodeFilter.SHOW_ALL, {
-          acceptNode: function(node) {
-            let test1 = false;
-            let test2 = false;
-            if (node.nodeType === 3) {
-              if ( /{([^}]+)}/.test(node.data) ) {
-                test1 = true;
-              } 
-            } else if (node.nodeType === 1) {
-              let attrs = node.getAttributeNames();
-              for (let i=0; i<attrs.length; i++) {
-                if ( /{([^}]+)}/.test(node.getAttribute(attrs[i])) ) {
-                  test2 = true;
-                }
-              }
-            }
+    // Updates all the attributes that contain placeholders {}
+    const updateAttributePlaceholders = function(node, rootDataObject, itemAlias) {
+      const attrs = node.attributes;
+      for (let i=0; i<attrs.length; i++) {
+        if ( /{([^}]+)}/.test(attrs[i].value) ) {
+          attrs[i].value = getPropValue(attrs[i].value, rootDataObject, itemAlias)
+        }
+      }
+    };
 
-            if (test1 || test2) return NodeFilter.FILTER_ACCEPT;
-          }
-      });
-
+    // Updates all the text nodes that contain placeholders {}
+    const updateTextNodePlaceholders = function(nodeTree, rootDataObject, itemAlias) {
+      // Text Nodes
       // Create a new treeWalker with all visible text nodes that contain {};
-      var textWalker = document.createTreeWalker(
+      const textWalker = document.createTreeWalker(
         nodeTree, NodeFilter.SHOW_TEXT, {
           acceptNode: function(node) {
             if ( /{([^}]+)}/.test(node.data) ) {
               return NodeFilter.FILTER_ACCEPT;
             }
           }
-      });
+        }
+      );
 
       while (textWalker.nextNode()) {
         let nodeVal = textWalker.currentNode.nodeValue;
-        console.log(nodeVal);
-
         // Iterate over the props (if any) and replace it with the appropriate value.
         const props = nodeVal.match(/{([^}]+)}/g);
         for (let i=0; i<props.length; i++) {
-          const prop = props[i];
-          const propName = prop.replace(/{|}/g , '');
-          let propKeys = propName.split('.');
-          if (rootDataObject === undefined) rootDataObject = comp
-          if (itemAlias === propKeys[0]) propKeys.shift();
-
-          const propValue = searchComponent(rootDataObject, propKeys);
-          console.log(prop + ' => ' + propName + ' | Replacing with: ' + propValue);
-          nodeVal = nodeVal.replace(prop, propValue);
-          console.log(nodeVal);
+          nodeVal = nodeVal.replace(props[i], getPropValue(props[i], rootDataObject, itemAlias));
         }
         textWalker.currentNode.nodeValue = nodeVal;
       }
-    }
+    };
 
     // Processes nodes recursivelly in reverse. Evaluates the nodes based on their attributes.
     // Removes and skips the nodes who evaluate to false.
@@ -320,7 +307,6 @@ var AjaxComponent = function(config) {
         if (attrs[i] in evalMethods) {
           const attr = attrs[i];
           const result = evalMethods[attr](node);
-          console.log('==> ' + attr + ' ' + node.getAttribute(attr) + ' is ' + result);
           if (result === false) {
             return;
           } else {
@@ -328,6 +314,8 @@ var AjaxComponent = function(config) {
           }
         }
       }
+
+      updateAttributePlaceholders(node);
 
       if (node.hasChildNodes()) {
         for (let c=node.childElementCount - 1; c >= 0; c--) {
@@ -344,10 +332,7 @@ var AjaxComponent = function(config) {
     let tmpDOM = comp.originalDOM.cloneNode(true);
     
     processNode(tmpDOM);
-    updatePlaceholders(tmpDOM);
-
-    console.log('==> Processed node tree:');
-    console.log(tmpDOM);
+    updateTextNodePlaceholders(tmpDOM);
     this.el.innerHTML = tmpDOM.innerHTML;
     if (callback instanceof Function) callback();
   }
