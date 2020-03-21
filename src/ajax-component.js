@@ -5,7 +5,7 @@ var AjaxComponent = function(config) {
     
     if (! config.el) throw "==> el is not set or not present in DOM. Set el to a valid DOM element on init.";
     
-    this.el = config.el;
+    this.el = document.querySelector(config.el);
     this.originalDOM = this.el.cloneNode(true);
     
     this.settings = {
@@ -48,6 +48,28 @@ var AjaxComponent = function(config) {
       }
     };
     if (config.methods instanceof Object) Object.assign(this.methods, config.methods);
+
+    this.events = {Parent: this};
+    if (config.events instanceof Object) {
+      const comp = this;
+      Object.assign(this.events, config.events)
+
+      // Add event listeners to :el for each event
+      for (ev in comp.events) {
+        console.log(ev);
+        // Events are in this form (event element) so split at space to get the eventName and the element to attach the
+        // event on.
+        const eParts = ev.split(' ');
+        const eventName = eParts[0];
+        const eventElement = eParts[1];
+        
+        comp.el.addEventListener(eventName, function(e) {
+          comp.el.querySelectorAll(eventElement).forEach(el => {
+            if (e.srcElement === el) comp.events[ev](e);
+          });
+        });
+      }
+    }
 
   } else {
     return false;

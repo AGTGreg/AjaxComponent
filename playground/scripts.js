@@ -11,7 +11,7 @@ var timer = function(name) {
 };
 
 var comp = new AjaxComponent({
-  el: document.getElementById('app'),
+  el: '#app',
   
   settings: {
     baseUrl: 'https://reqres.in/api/users',
@@ -32,7 +32,7 @@ var comp = new AjaxComponent({
 
 
 var todoApp = new AjaxComponent({
-  el: document.getElementById('todoApp'),
+  el: '#todoApp',
 
   data: {
     todos: []
@@ -45,46 +45,65 @@ var todoApp = new AjaxComponent({
     placeholder() {
       return "Write something";
     }
+  },
+
+  events: {
+    'keypress #todoInput': function(e) {
+      if (e.which == 13) {
+        const nextId = todoApp.data.todos.length + 1;
+        if (e.srcElement.value.length > 0) {
+          todoApp.data.todos.push(
+            { id: nextId, title: e.srcElement.value, done: false }
+          );
+          var t = timer('Render');
+          todoApp.render(() => {
+            console.log(e.srcElement);
+          });
+          t.stop();
+        }
+      }
+
+    }
   }
 });
 
 
 $(document).ready(function() {
-  $('#app').on('click', '#btnLoadData', function() {
-    comp.update({delay: 2});
-  });
-  $('#app').on('click', '#btnError', function() {
-    comp.state.error = true;
-    comp.render();
-  });
+  // $('#app').on('click', '#btnLoadData', function() {
+  //   comp.update({delay: 2});
+  // });
+  // $('#app').on('click', '#btnError', function() {
+  //   comp.state.error = true;
+  //   comp.render();
+  // });
 
 
-  $('#todoApp').on('keypress', '#todoInput', function(e) {
-    if (e.which == 13) {
-      const nextId = todoApp.data.todos.length + 1;
-      if ($(e.target).val().length > 0) {
-        todoApp.data.todos.push(
-          { id: nextId, title: $(e.target).val(), done: false }
-        );
-        var t = timer('Render');
-        todoApp.render(() => $('#todoApp #todoInput').focus());
-        t.stop();
-      }
-    }
-  });
-  $('#todoApp').on('change', '.check-done', function(e) {
-    const $this = $(e.target);
-  });
+  // $('#todoApp').on('keypress', '#todoInput', function(e) {
+  //   if (e.which == 13) {
+  //     const nextId = todoApp.data.todos.length + 1;
+  //     if ($(e.target).val().length > 0) {
+  //       todoApp.data.todos.push(
+  //         { id: nextId, title: $(e.target).val(), done: false }
+  //       );
+  //       var t = timer('Render');
+  //       todoApp.render(() => $('#todoApp #todoInput').focus());
+  //       t.stop();
+  //     }
+  //   }
+  // });
+  // $('#todoApp').on('change', '.check-done', function(e) {
+  //   const $this = $(e.target);
+  // });
 
   
-  var t = timer('Render');
-  for (let i=0; i<100; i++) {
-    const nextId = todoApp.data.todos.length + 1;
-    todoApp.data.todos.push(
-      { id: nextId, title: "Do something", done: false }
-    );
-    todoApp.render();
-  }
-  t.stop();
+  // for (let i=0; i<1000; i++) {
+  //   const nextId = todoApp.data.todos.length + 1;
+  //   todoApp.data.todos.push(
+  //     { id: nextId, title: "Do something", done: false }
+  //   );
+  // }
+  // var t = timer('Render');
+  // todoApp.render();
+  // t.stop();
 
 });
