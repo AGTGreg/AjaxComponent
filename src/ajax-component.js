@@ -49,13 +49,12 @@ var AjaxComponent = function(config) {
     };
     if (config.methods instanceof Object) Object.assign(this.methods, config.methods);
 
-    this.events = {Parent: this};
+    this.events = {};
     if (config.events instanceof Object) {
       const comp = this;
-      Object.assign(this.events, config.events)
-
+      Object.assign(comp.events, config.events)
       // Add event listeners to :el for each event
-      for (ev in comp.events) {
+      for (const ev in comp.events) {
         console.log(ev);
         // Events are in this form (event element) so split at space to get the eventName and the element to attach the
         // event on.
@@ -70,6 +69,7 @@ var AjaxComponent = function(config) {
         });
       }
     }
+    this.events['Parent'] = this;
 
   } else {
     return false;
@@ -90,6 +90,10 @@ var AjaxComponent = function(config) {
 
   this.update = function(params, callback) {
     this.makeRequest('GET', params, callback); 
+  }
+
+  this.request(method, url, params, callback) {
+    const comp = this;
   }
 
   this.makeRequest = function(method, params, callback) {
