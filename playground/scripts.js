@@ -49,8 +49,22 @@ var todoApp = new AjaxComponent({
     todos() {
       return this.Parent.data.todos;
     },
+    
     placeholder() {
       return "Write something";
+    },
+
+    toggleToDo(id) {
+      this.Parent.data.todos.forEach(todo => {
+        if (todo.id === id) {
+          todo.done = !todo.done;
+        }
+        console.log(todo);
+      });
+    },
+
+    isDone() {
+      return true;
     }
   },
 
@@ -60,7 +74,7 @@ var todoApp = new AjaxComponent({
         const nextId = todoApp.data.todos.length + 1;
         if (e.srcElement.value.length > 0) {
           todoApp.data.todos.push(
-            { id: nextId, title: e.srcElement.value, done: false }
+            { id: nextId, title: e.srcElement.value, done: true }
           );
           var t = timer('Render');
           todoApp.render(() => {
@@ -69,6 +83,11 @@ var todoApp = new AjaxComponent({
           t.stop();
         }
       }
+    },
+
+    'click .checkDone': function(e) {
+      const currentId = Number(e.srcElement.parentElement.getAttribute('data-key'));
+      this.Parent.methods.toggleToDo(currentId);
     }
 
   }

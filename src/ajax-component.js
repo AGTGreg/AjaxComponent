@@ -55,7 +55,6 @@ var AjaxComponent = function(config) {
       Object.assign(comp.events, config.events)
       // Add event listeners to :el for each event
       for (const ev in comp.events) {
-        console.log(ev);
         // Events are in this form (event element) so split at space to get the eventName and the element to attach the
         // event on.
         const eParts = ev.split(' ');
@@ -75,7 +74,6 @@ var AjaxComponent = function(config) {
     return false;
   }
   
-
   // Built-in methods
   this.reset = function() {
     this.state.loading = false;
@@ -90,10 +88,6 @@ var AjaxComponent = function(config) {
 
   this.update = function(params, callback) {
     this.makeRequest('GET', params, callback); 
-  }
-
-  this.request(method, url, params, callback) {
-    const comp = this;
   }
 
   this.makeRequest = function(method, params, callback) {
@@ -265,6 +259,7 @@ var AjaxComponent = function(config) {
             updateAttributePlaceholders(newNode, item, itemAlias);
             // Update the text nodes
             updateTextNodePlaceholders(newNode, item, itemAlias);
+            processNode(newNode, itemAlias);
 
             node.parentNode.insertBefore(newNode, node);
           });
@@ -291,13 +286,16 @@ var AjaxComponent = function(config) {
       return searchComponent(rootDataObject, propKeys);
     }; 
 
-    // Updates all the attributes that contain placeholders {}
+    // Updates all the attributes that contain placeholders ({})
     const updateAttributePlaceholders = function(node, rootDataObject, itemAlias) {
       const attrs = node.attributes;
       for (let i=0; i<attrs.length; i++) {
         if ( /{([^}]+)}/.test(attrs[i].value) ) {
           attrs[i].value = getPropValue(attrs[i].value, rootDataObject, itemAlias)
         }
+      }
+      for (let i=0; i<node.children.length; i++) {
+        updateAttributePlaceholders(node.children[i], rootDataObject, itemAlias);
       }
     };
 
