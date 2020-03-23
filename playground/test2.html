@@ -29,9 +29,11 @@
 
   <div id="app" class="container">
 
+    <!-- c-if directive that evaluates a method. -->
     <div c-if="conditionA" class="row">
       <div class="col-md-12">
         <h2>Condition A is true</h2>
+        <!-- c-if directive in nested node. -->
         <div c-if="conditionAb" class="col-md-12">
           <p>Condition A b is true</p>
         </div>
@@ -46,12 +48,20 @@
         
         <h2>ToDo List</h2>
         
+        <!-- c-if directive that evaluates data -->
         <ul c-if="data.aBool" id="todo-list" class="list-group">
         
+          <!-- c-for directive -->
           <li c-for="todo in data.todoList" class="list-group-item" data-key="{todo.id}">
+            <!-- c-if directive must evaluate conditions with operators -->
             <input c-if="todo.done == true" type="checkbox" class="todo-checkbox" checked>
             <input c-if="todo.done == false" type="checkbox" class="todo-checkbox">
+
+            <!-- Properties in nested nodes, must work with an alias (todo in this case) -->
+            <!-- Also, properties must be able to mix with regular text and other properties. -->
             <span data-todo="todo-{todo.id}-{todo.title}">{todo.id} - {todo.title}</span>
+
+            <!-- c-if directive in nested node -->
             <span c-if="conditionA"> | Condition A is true</span>
             <span c-if="conditionB"> | Condition B is true</span>
           </li>

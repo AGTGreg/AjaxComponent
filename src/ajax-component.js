@@ -222,7 +222,7 @@ var AjaxComponent = function(config) {
       return root;
     }
 
-    const evalMethods = {
+    const directives = {
       'c-if': function(node) {
         const attr = node.getAttribute('c-if');
 
@@ -238,7 +238,6 @@ var AjaxComponent = function(config) {
         return true;
       },
 
-
       'c-for': function(node) {
         const attr = node.getAttribute('c-for');
 
@@ -253,12 +252,9 @@ var AjaxComponent = function(config) {
           node.removeAttribute('c-for');
           iterable.forEach(item => {
             newNode = node.cloneNode(true);
-            // Update the attributes
             updateAttributePlaceholders(newNode, item, alias);
-            // Update the text nodes
             updateTextNodePlaceholders(newNode, item, alias);
             processNode(newNode, item, alias);
-
             node.parentNode.insertBefore(newNode, node);
           });
 
@@ -272,14 +268,15 @@ var AjaxComponent = function(config) {
 
         }
       }
+
     }
 
-    // Iterates the node tree and replaces the {} with data values.
-    // :rootDataObject is the root object that the searchComponent will start from in order to get the data. The
-    // default is comp.
-    // :alias points to a specific place in the component, ie (data.items). If it is provided, it will be removed 
-    // from the keys in propNames. This is handy in case this method is called from a c-for loop:
-    // for item in itemsList: {item.id}
+    // Iterates the node tree and replaces the placeholders with data values.
+    // :rootDataObject is the root object that searchComponent will start from in order to get the data. The default is
+    // comp.
+    // :alias is a name for a specific place in the component, ie (data.item) as item. If it's provided, it will be
+    // removed from the keys in propNames. This is handy in case this method is called from a c-for loop. ie:
+    // for item in itemsList. Then we may call its properties via the alias. ie: {item.id}
     // The propName is item.id and the alias is the item. So in this case item.id will become id.
     const getPropValue = function(prop, rootDataObject, alias) {
       if ( /{([^}]+)}/.test(prop) === false ) return; 
@@ -332,18 +329,19 @@ var AjaxComponent = function(config) {
     };
 
     // Processes nodes recursivelly in reverse. Evaluates the nodes based on their attributes.
-    // Removes and skips the nodes who evaluate to false.
+    // Removes and skips the nodes that evaluate to false.
     const processNode = function(node, rootDataObject, alias) {
       
       const attrs = node.attributes;
       for (let i=0; i<attrs.length; i++) {
-        if (attrs[i].name in evalMethods) {
+        if (attrs[i].name in directives) {
           const attr = attrs[i].name;
-          const result = evalMethods[attr](node);
+          const result = directives[attr](node);
           if (result === false) return;
         }
       }
 
+      // If a node stays in our tree (did not evaluate to false) then update all of its attributes.
       updateAttributePlaceholders(node, rootDataObject, alias);
 
       if (node.hasChildNodes()) {
