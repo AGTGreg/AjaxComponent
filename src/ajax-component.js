@@ -227,7 +227,6 @@ var AjaxComponent = function(config) {
         const attr = node.getAttribute('c-if');
 
         let condition = searchComponent(comp, attr.split('.'));
-        console.log(attr + ' is ' + condition);
 
         if (condition === undefined || condition === false) {
           node.remove();
@@ -293,7 +292,6 @@ var AjaxComponent = function(config) {
       for (let i=0; i<attrs.length; i++) {
         if ( /{([^}]+)}/.test(attrs[i].value) ) {
           const props = attrs[i].value.match(/{([^}]+)}/g);
-          console.log(props);
 
           for (let p=0; p<props.length; p++) {
             const re = new RegExp(props[p], 'g');
