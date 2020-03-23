@@ -242,9 +242,9 @@ var AjaxComponent = function(config) {
       'c-for': function(node) {
         const attr = node.getAttribute('c-for');
 
-        // Get the itemAlias and the iterable in (itemAlias in iterable)
+        // Get the alias and the iterable in (alias in iterable)
         stParts = attr.split(' in ');
-        const itemAlias = stParts[0];
+        const alias = stParts[0];
         objectKeys = stParts[1].split('.');
         let iterable = searchComponent(comp, objectKeys);
 
@@ -254,10 +254,10 @@ var AjaxComponent = function(config) {
           iterable.forEach(item => {
             newNode = node.cloneNode(true);
             // Update the attributes
-            updateAttributePlaceholders(newNode, item, itemAlias);
+            updateAttributePlaceholders(newNode, item, alias);
             // Update the text nodes
-            updateTextNodePlaceholders(newNode, item, itemAlias);
-            processNode(newNode, itemAlias);
+            updateTextNodePlaceholders(newNode, item, alias);
+            processNode(newNode, item, alias);
 
             node.parentNode.insertBefore(newNode, node);
           });
@@ -277,34 +277,37 @@ var AjaxComponent = function(config) {
     // Iterates the node tree and replaces the {} with data values.
     // :rootDataObject is the root object that the searchComponent will start from in order to get the data. The
     // default is comp.
-    // :itemAlias is the first key of the propName and if it is provided, it will be removed from the keys in 
-    // propNames. This is handy in case this method is called from a c-for loop:
+    // :alias points to a specific place in the component, ie (data.items). If it is provided, it will be removed 
+    // from the keys in propNames. This is handy in case this method is called from a c-for loop:
     // for item in itemsList: {item.id}
-    // The propName is item.id and the itemAlias is the item. So in this case item.id will become id.
-    const getPropValue = function(prop, rootDataObject, itemAlias) {
+    // The propName is item.id and the alias is the item. So in this case item.id will become id.
+    const getPropValue = function(prop, rootDataObject, alias) {
       if ( /{([^}]+)}/.test(prop) === false ) return; 
       const propName = prop.replace(/{|}/g , '');
       let propKeys = propName.split('.');
       if (rootDataObject === undefined) rootDataObject = comp
-      if (itemAlias === propKeys[0]) propKeys.shift();
+      if (alias === propKeys[0]) propKeys.shift();
       return searchComponent(rootDataObject, propKeys);
     }; 
 
-    // Updates all the attributes that contain placeholders ({})
-    const updateAttributePlaceholders = function(node, rootDataObject, itemAlias) {
+    // Replaces all placeholders in all attributes in a node.
+    const updateAttributePlaceholders = function(node, rootDataObject, alias) {
       const attrs = node.attributes;
       for (let i=0; i<attrs.length; i++) {
         if ( /{([^}]+)}/.test(attrs[i].value) ) {
-          attrs[i].value = getPropValue(attrs[i].value, rootDataObject, itemAlias)
+          const props = attrs[i].value.match(/{([^}]+)}/g);
+          console.log(props);
+
+          for (let p=0; p<props.length; p++) {
+            const re = new RegExp(props[p], 'g');
+            attrs[i].value = attrs[i].value.replace(re, getPropValue(props[p], rootDataObject, alias));
+          }
         }
-      }
-      for (let i=0; i<node.children.length; i++) {
-        updateAttributePlaceholders(node.children[i], rootDataObject, itemAlias);
       }
     };
 
     // Updates all the text nodes that contain placeholders {}
-    const updateTextNodePlaceholders = function(nodeTree, rootDataObject, itemAlias) {
+    const updateTextNodePlaceholders = function(nodeTree, rootDataObject, alias) {
       // Text Nodes
       // Create a new treeWalker with all visible text nodes that contain {};
       const textWalker = document.createTreeWalker(
@@ -322,7 +325,7 @@ var AjaxComponent = function(config) {
         // Iterate over the props (if any) and replace it with the appropriate value.
         const props = nodeVal.match(/{([^}]+)}/g);
         for (let i=0; i<props.length; i++) {
-          nodeVal = nodeVal.replace(props[i], getPropValue(props[i], rootDataObject, itemAlias));
+          nodeVal = nodeVal.replace(props[i], getPropValue(props[i], rootDataObject, alias));
         }
         textWalker.currentNode.nodeValue = nodeVal;
       }
@@ -330,25 +333,23 @@ var AjaxComponent = function(config) {
 
     // Processes nodes recursivelly in reverse. Evaluates the nodes based on their attributes.
     // Removes and skips the nodes who evaluate to false.
-    const processNode = function(node) {
+    const processNode = function(node, rootDataObject, alias) {
+      
       const attrs = node.attributes;
       for (let i=0; i<attrs.length; i++) {
         if (attrs[i].name in evalMethods) {
           const attr = attrs[i].name;
           const result = evalMethods[attr](node);
-          if (result === false) {
-            return;
-          }
-        } else {
-          const prop = getPropValue(attrs[i].value);
-          if (prop) attrs[i].value = prop;
+          if (result === false) return;
         }
       }
+
+      updateAttributePlaceholders(node, rootDataObject, alias);
 
       if (node.hasChildNodes()) {
         for (let c=node.childElementCount - 1; c >= 0; c--) {
           if (node.children[c]) {
-            processNode(node.children[c]);
+            processNode(node.children[c], rootDataObject, alias);
           } else {
             break;
           }
