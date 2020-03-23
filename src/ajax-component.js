@@ -223,10 +223,12 @@ var AjaxComponent = function(config) {
     }
 
     const directives = {
-      'c-if': function(node) {
+      'c-if': function(node, rootDataObject, alias) {
         const attr = node.getAttribute('c-if');
-
-        let condition = searchComponent(comp, attr.split('.'));
+        const keys = attr.split('.');
+        if (alias === keys[0]) keys.shift();
+        if (rootDataObject === undefined) rootDataObject = comp;
+        let condition = searchComponent(rootDataObject, keys);
 
         if (condition === undefined || condition === false) {
           node.remove();
@@ -237,14 +239,22 @@ var AjaxComponent = function(config) {
         return true;
       },
 
-      'c-for': function(node) {
+      'c-for': function(node, rootDataObject, alias) {
         const attr = node.getAttribute('c-for');
 
         // Get the alias and the iterable in (alias in iterable)
         stParts = attr.split(' in ');
-        const alias = stParts[0];
+
+        alias = stParts[0];
         objectKeys = stParts[1].split('.');
-        let iterable = searchComponent(comp, objectKeys);
+        if (rootDataObject === undefined) rootDataObject = comp;
+        if (alias === objectKeys[0]) objectKeys.shift();
+
+        let iterable = searchComponent(rootDataObject, objectKeys);
+        console.log(rootDataObject);
+        console.log(alias);
+        console.log(objectKeys);
+        console.log(iterable);
 
         if (iterable) {
 
@@ -334,7 +344,7 @@ var AjaxComponent = function(config) {
       for (let i=0; i<attrs.length; i++) {
         if (attrs[i].name in directives) {
           const attr = attrs[i].name;
-          const result = directives[attr](node);
+          const result = directives[attr](node, rootDataObject, alias);
           if (result === false) return;
         }
       }

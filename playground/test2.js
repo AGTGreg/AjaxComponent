@@ -6,7 +6,11 @@ var app = new AjaxComponent({
   data: {
     todoList: [
       {id: 1, title: "Todo 1"},
-      {id: 2, title: "Todo 2"},
+      {id: 2, title: "Todo 2", todos: [
+        {id: 1, title: "sub Todo 1"},
+        {id: 2, title: "sub Todo 2"},
+        {id: 3, title: "sub Todo 3"}
+      ]},
       {id: 3, title: "Todo 3"}
     ],
 

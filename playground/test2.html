@@ -61,9 +61,11 @@
             <!-- Also, properties must be able to mix with regular text and other properties. -->
             <span data-todo="todo-{todo.id}-{todo.title}">{todo.id} - {todo.title}</span>
 
-            <!-- c-if directive in nested node -->
-            <span c-if="conditionA"> | Condition A is true</span>
-            <span c-if="conditionB"> | Condition B is true</span>
+            <ul c-if="todo.todos" class="list-group">
+              <li c-for="subTodo in todo.todos" class="list-group-item" data-key="{subTodo.id}">
+                {subTodo.title}
+              </li>
+            </ul>
           </li>
         
         </ul>
