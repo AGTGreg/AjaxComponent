@@ -1,0 +1,71 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Ajax Component Test</title>
+  <meta name="description" content="Ajax Component Test">
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+
+  <script src="../src/ajax-component.js"></script>
+
+</head>
+
+<body>
+
+  <header>
+    <div class="jumbotron jumbotron-fluid">
+      <div class="container">
+        <h1 class="display-4">AjaxComponent</h1>
+        <p class="lead">Simply built tiny Apps for the web</p>
+      </div>
+    </div>
+  </header>
+
+
+  <div id="app" class="container">
+
+    <div c-if="conditionA" class="row">
+      <div class="col-md-12">
+        <h2>Condition A is true</h2>
+        <div c-if="conditionAb" class="col-md-12">
+          <p>Condition A b is true</p>
+        </div>
+      </div>
+    </div>
+
+    <hr />
+
+    <div c-if="conditionB" class="row">
+      <div class="col-md-12">
+        <h2>Condition B is true</h2>
+        
+        <h2>ToDo List</h2>
+        
+        <ul c-if="data.aBool" id="todo-list" class="list-group">
+        
+          <li c-for="todo in data.todoList" class="list-group-item" data-key="{todo.id}">
+            <input c-if="todo.done == true" type="checkbox" class="todo-checkbox" checked>
+            <input c-if="todo.done == false" type="checkbox" class="todo-checkbox">
+            <span>{todo.title}</span>
+            <span c-if="conditionA"> | Condition A is true</span>
+            <span c-if="conditionB"> | Condition B is true</span>
+          </li>
+        
+        </ul>
+      
+      </div>
+    </div>
+
+  </div>
+
+  
+
+  <script src="test2.js"></script>
+
+</body>
+</html>

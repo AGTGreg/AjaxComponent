@@ -215,7 +215,6 @@ var AjaxComponent = function(config) {
     */
     const searchComponent = function(root, keys) {
       if (keys in comp.methods) return comp.methods[keys]();
-
       for (let i=0; i<keys.length; i++) {
         root = root[keys[i]];
         if (root == undefined) break;
@@ -226,12 +225,11 @@ var AjaxComponent = function(config) {
     const evalMethods = {
       'c-if': function(node) {
         const attr = node.getAttribute('c-if');
-        let method;
-        if (attr in comp.methods) {
-          method = comp.methods[attr]();
-        }
 
-        if (method === undefined || method === false) {
+        let condition = searchComponent(comp, attr.split('.'));
+        console.log(attr + ' is ' + condition);
+
+        if (condition === undefined || condition === false) {
           node.remove();
           return false;
         }
@@ -250,9 +248,9 @@ var AjaxComponent = function(config) {
         objectKeys = stParts[1].split('.');
         let iterable = searchComponent(comp, objectKeys);
 
-        node.removeAttribute('c-for');
-
         if (iterable) {
+
+          node.removeAttribute('c-for');
           iterable.forEach(item => {
             newNode = node.cloneNode(true);
             // Update the attributes
@@ -263,10 +261,16 @@ var AjaxComponent = function(config) {
 
             node.parentNode.insertBefore(newNode, node);
           });
-        }
 
-        node.remove();
-        return false;
+          node.remove();
+          return true;
+
+        } else {
+
+          node.remove();
+          return false;
+
+        }
       }
     }
 
