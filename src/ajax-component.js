@@ -246,17 +246,38 @@ var AjaxComponent = function(config) {
 
     const directives = {
       'c-if': function(node, pointers) {
-        const attr = node.getAttribute('c-if');
-        const keys = attr.split('.');
-        let condition = getProp(keys, pointers);
+        let attr = node.getAttribute('c-if');
+        let result = getProp(attr.split('.'), pointers);
 
-        if (condition === undefined || condition === false) {
-          node.remove();
-          return false;
+        if (result === undefined) {
+          // Check if the attribute contains a logical operator. Split the condition at the
+          // operator to get the value of the object at left side and evaluate.
+          const operators = [' == ', ' === ', ' !== ', ' != ', ' > ', ' < ', ' >= ', ' <= '];
+          const validTypes = ['boolean', 'string', 'number'];
+          for (let i=0; i<operators.length; i++) {
+            if (attr.includes(operators[i])) {
+              const cParts = attr.split(operators[i]);
+              const condLeft = getProp(cParts[0].split('.'), pointers);
+
+              if (validTypes.includes(String(typeof(condLeft))) === false) {
+                console.error(cParts[0] + " cannot be evaluated because its type is not a boolean or a string or a number");
+                return false;
+              } else {
+                attr = attr.replace(cParts[0], condLeft);
+                result = eval(attr);
+              }
+            }
+          }
         }
 
-        node.removeAttribute('c-if');
-        return true;
+        if (result === undefined || result === false) {
+          node.remove();
+          return false;
+        
+        } else {
+          node.removeAttribute('c-if');
+          return true;
+        }
       },
 
       'c-for': function(node, pointers) {

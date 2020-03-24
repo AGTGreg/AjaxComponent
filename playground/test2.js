@@ -26,8 +26,7 @@ var app = new AjaxComponent({
   methods: {
     conditionA() { return true; },
     conditionAb() { return true; },
-    conditionB() { return true; },
-    
+    conditionNumber() { return 1; }
   }
 
 });

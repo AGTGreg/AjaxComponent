@@ -29,24 +29,37 @@
 
   <div id="app" class="container">
 
-    <!-- c-if directive that evaluates a method. -->
-    <div c-if="conditionA" class="row">
-      <div class="col-md-12">
-        <h2>Condition A is true</h2>
-        <!-- c-if directive in nested node. -->
-        <div c-if="conditionAb" class="col-md-12">
-          <p>Condition A b is true</p>
-        </div>
+    <div class="row">
+      <h2>IF directive</h2>
+
+      <div c-if="conditionA" class="col-md-12">
+        <p>ConditionA is a method and evaluates true</p>
+        <p c-if="conditionAb">ConditionAb is a method and evaluates true. This is a nested if.</p>
+
+        <p c-if="conditionNumber == 1">conditionNumber == 1</p>
+        <p c-if="conditionNumber === 1">conditionNumber === 1</p>
+        <p c-if="conditionNumber > 1">conditionNumber > 1</p>
+        <p c-if="conditionNumber < 1">conditionNumber < 1</p></1>
+        <p c-if="conditionNumber >= 1">conditionNumber >= 1</p>
+        <p c-if="conditionNumber <= 1">conditionNumber <= 1</p>
+        <p c-if="conditionNumber != 1">conditionNumber != 1</p>
+        <p c-if="conditionNumber !== 1">conditionNumber !== 1</p>
+        
+        <p c-if="conditionNumber == 0">conditionNumber == 0</p>
+        <p c-if="conditionNumber !== 0">conditionNumber !== 0</p>
+        <p c-if="conditionNumber > 0">conditionNumber > 0</p>
+
+        <p c-if="data.todoList === 1">data.todoList in a List</p>
       </div>
     </div>
 
     <hr />
 
-    <div c-if="conditionB" class="row">
+    <div class="row">
       <div class="col-md-12">
-        <h2>Condition B is true</h2>
+        <h2>For directive</h2>
         
-        <h2>ToDo List</h2>
+        <h3>ToDo List</h3>
         
         <!-- c-if directive that evaluates data -->
         <ul c-if="data.aBool" id="todo-list" class="list-group">
