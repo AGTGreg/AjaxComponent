@@ -53,9 +53,6 @@
         
           <!-- c-for directive -->
           <li c-for="todo in data.todoList" class="list-group-item" data-key="{todo.id}">
-            <!-- c-if directive must evaluate conditions with operators -->
-            <input c-if="todo.done == true" type="checkbox" class="todo-checkbox" checked>
-            <input c-if="todo.done == false" type="checkbox" class="todo-checkbox">
 
             <!-- Properties in nested nodes, must work with an alias (todo in this case) -->
             <!-- Also, properties must be able to mix with regular text and other properties. -->
@@ -63,7 +60,7 @@
 
             <ul c-if="todo.todos" class="list-group">
               <li c-for="subTodo in todo.todos" class="list-group-item" data-key="{subTodo.id}">
-                {subTodo.title}
+                <span id="subtodo-{subTodo.id}">{subTodo.title}</span>
               </li>
             </ul>
           </li>

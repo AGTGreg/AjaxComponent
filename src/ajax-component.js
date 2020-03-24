@@ -203,8 +203,48 @@ var AjaxComponent = function(config) {
     return params;
   }
 
+
   this.render = function(callback) {
     const comp = this;
+    const pointers = {};
+
+
+    /*
+    Gets a property's value.
+
+    :keys = An array of keys to search for
+    :pointers = An object with keys that point to a specific value
+
+    First search in pointers if pointers is defined. Then search in
+    methods and lastly search in the component itself.
+    */
+    const getProp = function(keys, pointers) {
+      console.log(keys);
+      const firstKey = keys[0];
+      let root;
+      let prop;
+
+      if (pointers && firstKey in pointers) {
+        keys.shift();
+        root = pointers[firstKey];
+
+      } else if (firstKey in comp.methods) {
+        keys.shift();
+        return comp.methods[firstKey]();
+      
+      } else {
+        root = comp;
+      }
+
+      for (let i=0; i<keys.length; i++) {
+        prop = root[keys[i]];
+        console.log('==> Key: ' + keys[i] + ': ' + prop);
+        if (prop === undefined) break;
+      }
+
+      return prop;
+      
+    }
 
     /*
     Get the data or method specified in :root.
@@ -213,7 +253,7 @@ var AjaxComponent = function(config) {
     comp.data => comp.data[key] => comp.data[key][key2] => ...
     Return the result or stop and return false as soon as a key does not exist.
     */
-    const searchComponent = function(root, keys) {
+    const searchClomponent = function(root, keys) {
       if (keys in comp.methods) return comp.methods[keys]();
       for (let i=0; i<keys.length; i++) {
         root = root[keys[i]];
@@ -223,12 +263,11 @@ var AjaxComponent = function(config) {
     }
 
     const directives = {
-      'c-if': function(node, rootDataObject, alias) {
+      'c-if': function(node, pointers) {
         const attr = node.getAttribute('c-if');
+        // console.log('==> c-if ' + attr);
         const keys = attr.split('.');
-        if (alias === keys[0]) keys.shift();
-        if (rootDataObject === undefined) rootDataObject = comp;
-        let condition = searchComponent(rootDataObject, keys);
+        let condition = getProp(keys, pointers);
 
         if (condition === undefined || condition === false) {
           node.remove();
@@ -239,12 +278,54 @@ var AjaxComponent = function(config) {
         return true;
       },
 
-      'c-for': function(node, rootDataObject, alias) {
+      'c-for': function(node, pointers) {
         const attr = node.getAttribute('c-for');
+        console.log('==> c-for ' + attr);
+
+        stParts = attr.split(' in ');
+        pointer = stParts[0];
+        objectKeys = stParts[1].split('.');
+
+        if (pointers === undefined) pointers = {};
+        pointers[pointer] = getProp(objectKeys, pointers);
+        console.log('==> Pointer: ' + pointer + ' | pointers list:');
+        console.log(pointers);
+
+        let iterable = pointers[pointer];
+        console.log('==> Iterable:');
+        console.log(iterable);
+
+        if (iterable) {
+          node.removeAttribute('c-for');
+          console.log('==> Items:')
+
+          for (let i=0; i<iterable.length; i++) {
+            const item = iterable[i];
+            console.log(item);
+
+            const newNode = node.cloneNode(true);
+            updateAttributePlaceholders(newNode, pointers);
+            updateTextNodePlaceholders(newNode, pointers);
+            processNode(newNode, pointers);
+            node.parentNode.insertBefore(newNode, node);
+          };
+
+          node.remove();
+          return true;
+
+        } else {
+          node.remove();
+          return false;
+        }
+        
+      },
+
+      'f-for': function(node, rootDataObject, alias) {
+        const attr = node.getAttribute('c-for');
+        console.log(attr);
 
         // Get the alias and the iterable in (alias in iterable)
         stParts = attr.split(' in ');
-
         alias = stParts[0];
         objectKeys = stParts[1].split('.');
         if (rootDataObject === undefined) rootDataObject = comp;
@@ -252,14 +333,16 @@ var AjaxComponent = function(config) {
 
         let iterable = searchComponent(rootDataObject, objectKeys);
         console.log(rootDataObject);
-        console.log(alias);
-        console.log(objectKeys);
+        // console.log(alias);
+        // console.log(objectKeys);
         console.log(iterable);
 
         if (iterable) {
 
           node.removeAttribute('c-for');
           iterable.forEach(item => {
+            pointers[alias] = item;
+            console.log(pointers);
             newNode = node.cloneNode(true);
             updateAttributePlaceholders(newNode, item, alias);
             updateTextNodePlaceholders(newNode, item, alias);
@@ -280,24 +363,18 @@ var AjaxComponent = function(config) {
 
     }
 
-    // Iterates the node tree and replaces the placeholders with data values.
-    // :rootDataObject is the root object that searchComponent will start from in order to get the data. The default is
-    // comp.
-    // :alias is a name for a specific place in the component, ie (data.item) as item. If it's provided, it will be
-    // removed from the keys in propNames. This is handy in case this method is called from a c-for loop. ie:
-    // for item in itemsList. Then we may call its properties via the alias. ie: {item.id}
-    // The propName is item.id and the alias is the item. So in this case item.id will become id.
-    const getPropValue = function(prop, rootDataObject, alias) {
-      if ( /{([^}]+)}/.test(prop) === false ) return; 
-      const propName = prop.replace(/{|}/g , '');
-      let propKeys = propName.split('.');
-      if (rootDataObject === undefined) rootDataObject = comp
-      if (alias === propKeys[0]) propKeys.shift();
-      return searchComponent(rootDataObject, propKeys);
+
+    // Returns the value of a placeholder.
+    const getPlaceholderVal = function(placeholder, pointers) {
+      if ( /{([^}]+)}/.test(placeholder) === false ) return; 
+      const placeholderName = placeholder.replace(/{|}/g , '');
+      let propKeys = placeholderName.split('.');
+      return getProp(propKeys, pointers);
     }; 
 
+
     // Replaces all placeholders in all attributes in a node.
-    const updateAttributePlaceholders = function(node, rootDataObject, alias) {
+    const updateAttributePlaceholders = function(node, pointers) {
       const attrs = node.attributes;
       for (let i=0; i<attrs.length; i++) {
         if ( /{([^}]+)}/.test(attrs[i].value) ) {
@@ -305,16 +382,15 @@ var AjaxComponent = function(config) {
 
           for (let p=0; p<props.length; p++) {
             const re = new RegExp(props[p], 'g');
-            attrs[i].value = attrs[i].value.replace(re, getPropValue(props[p], rootDataObject, alias));
+            attrs[i].value = attrs[i].value.replace(re, getPlaceholderVal(props[p], pointers));
           }
         }
       }
     };
 
     // Updates all the text nodes that contain placeholders {}
-    const updateTextNodePlaceholders = function(nodeTree, rootDataObject, alias) {
-      // Text Nodes
-      // Create a new treeWalker with all visible text nodes that contain {};
+    const updateTextNodePlaceholders = function(nodeTree, pointers) {
+      // Create a new treeWalker with all visible text nodes that contain placeholders;
       const textWalker = document.createTreeWalker(
         nodeTree, NodeFilter.SHOW_TEXT, {
           acceptNode: function(node) {
@@ -330,7 +406,7 @@ var AjaxComponent = function(config) {
         // Iterate over the props (if any) and replace it with the appropriate value.
         const props = nodeVal.match(/{([^}]+)}/g);
         for (let i=0; i<props.length; i++) {
-          nodeVal = nodeVal.replace(props[i], getPropValue(props[i], rootDataObject, alias));
+          nodeVal = nodeVal.replace(props[i], getPlaceholderVal(props[i], pointers));
         }
         textWalker.currentNode.nodeValue = nodeVal;
       }
@@ -338,24 +414,24 @@ var AjaxComponent = function(config) {
 
     // Processes nodes recursivelly in reverse. Evaluates the nodes based on their attributes.
     // Removes and skips the nodes that evaluate to false.
-    const processNode = function(node, rootDataObject, alias) {
-      
+    const processNode = function(node, pointers) {
+
       const attrs = node.attributes;
       for (let i=0; i<attrs.length; i++) {
         if (attrs[i].name in directives) {
           const attr = attrs[i].name;
-          const result = directives[attr](node, rootDataObject, alias);
+          const result = directives[attr](node, pointers);
           if (result === false) return;
         }
       }
 
       // If a node stays in our tree (did not evaluate to false) then update all of its attributes.
-      updateAttributePlaceholders(node, rootDataObject, alias);
+      updateAttributePlaceholders(node, pointers);
 
       if (node.hasChildNodes()) {
         for (let c=node.childElementCount - 1; c >= 0; c--) {
           if (node.children[c]) {
-            processNode(node.children[c], rootDataObject, alias);
+            processNode(node.children[c], pointers);
           } else {
             break;
           }
