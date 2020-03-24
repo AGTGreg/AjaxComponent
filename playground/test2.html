@@ -61,8 +61,19 @@
             <ul c-if="todo.todos" class="list-group">
               <li c-for="subTodo in todo.todos" class="list-group-item" data-key="{subTodo.id}">
                 <span id="subtodo-{subTodo.id}">{subTodo.title}</span>
+
+                <!-- Children must have access to their parent's data -->
+                <span data-parentId="{todo.id}"> | Child of: {todo.title}</span>
+
+                <ul c-if="subTodo.todos" class="list-group">
+                  <li c-for="todoChild in subTodo.todos" class="list-group-item" data-key="{todoChild.id}">
+                    <span>{todoChild.title}</span>
+                  </li>
+                </ul>
+
               </li>
             </ul>
+
           </li>
         
         </ul>

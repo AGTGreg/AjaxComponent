@@ -206,8 +206,6 @@ var AjaxComponent = function(config) {
 
   this.render = function(callback) {
     const comp = this;
-    const pointers = {};
-
 
     /*
     Gets a property's value.
@@ -219,9 +217,8 @@ var AjaxComponent = function(config) {
     methods and lastly search in the component itself.
     */
     const getProp = function(keys, pointers) {
-      console.log(keys);
       const firstKey = keys[0];
-      let root;
+      let root = comp;
       let prop;
 
       if (pointers && firstKey in pointers) {
@@ -230,42 +227,26 @@ var AjaxComponent = function(config) {
 
       } else if (firstKey in comp.methods) {
         keys.shift();
-        return comp.methods[firstKey]();
-      
-      } else {
-        root = comp;
+        prop = comp.methods[firstKey]();
       }
 
-      for (let i=0; i<keys.length; i++) {
-        prop = root[keys[i]];
-        console.log('==> Key: ' + keys[i] + ': ' + prop);
-        if (prop === undefined) break;
+      if (keys.length > 0) {
+        for (let i=0; i<keys.length; i++) {
+          prop = root[keys[i]];
+          if (prop === undefined) {
+            break;
+          } else {
+            root = prop;
+          }
+        }
       }
 
       return prop;
-      
-    }
-
-    /*
-    Get the data or method specified in :root.
-    If the keys were fount in methods, return the method immediately.
-    If no method was found, then search in data one key at a time like so:
-    comp.data => comp.data[key] => comp.data[key][key2] => ...
-    Return the result or stop and return false as soon as a key does not exist.
-    */
-    const searchClomponent = function(root, keys) {
-      if (keys in comp.methods) return comp.methods[keys]();
-      for (let i=0; i<keys.length; i++) {
-        root = root[keys[i]];
-        if (root == undefined) break;
-      }
-      return root;
     }
 
     const directives = {
       'c-if': function(node, pointers) {
         const attr = node.getAttribute('c-if');
-        // console.log('==> c-if ' + attr);
         const keys = attr.split('.');
         let condition = getProp(keys, pointers);
 
@@ -280,85 +261,40 @@ var AjaxComponent = function(config) {
 
       'c-for': function(node, pointers) {
         const attr = node.getAttribute('c-for');
-        console.log('==> c-for ' + attr);
 
         stParts = attr.split(' in ');
         pointer = stParts[0];
         objectKeys = stParts[1].split('.');
-
         if (pointers === undefined) pointers = {};
-        pointers[pointer] = getProp(objectKeys, pointers);
-        console.log('==> Pointer: ' + pointer + ' | pointers list:');
-        console.log(pointers);
 
-        let iterable = pointers[pointer];
-        console.log('==> Iterable:');
-        console.log(iterable);
+        let iterable = getProp(objectKeys, pointers);
 
         if (iterable) {
           node.removeAttribute('c-for');
-          console.log('==> Items:')
+          const parentNode = node.parentNode;
 
           for (let i=0; i<iterable.length; i++) {
             const item = iterable[i];
-            console.log(item);
-
+            // Add a pointer for the current item.
+            pointers[pointer] = item;
+            
             const newNode = node.cloneNode(true);
+            processNode(newNode, pointers);
             updateAttributePlaceholders(newNode, pointers);
             updateTextNodePlaceholders(newNode, pointers);
-            processNode(newNode, pointers);
-            node.parentNode.insertBefore(newNode, node);
-          };
 
+            // Reset the pointer.
+            stParts = attr.split(' in ');
+            pointer = stParts[0];
+            parentNode.appendChild(newNode);
+          };
           node.remove();
           return true;
 
         } else {
-          node.remove();
           return false;
         }
         
-      },
-
-      'f-for': function(node, rootDataObject, alias) {
-        const attr = node.getAttribute('c-for');
-        console.log(attr);
-
-        // Get the alias and the iterable in (alias in iterable)
-        stParts = attr.split(' in ');
-        alias = stParts[0];
-        objectKeys = stParts[1].split('.');
-        if (rootDataObject === undefined) rootDataObject = comp;
-        if (alias === objectKeys[0]) objectKeys.shift();
-
-        let iterable = searchComponent(rootDataObject, objectKeys);
-        console.log(rootDataObject);
-        // console.log(alias);
-        // console.log(objectKeys);
-        console.log(iterable);
-
-        if (iterable) {
-
-          node.removeAttribute('c-for');
-          iterable.forEach(item => {
-            pointers[alias] = item;
-            console.log(pointers);
-            newNode = node.cloneNode(true);
-            updateAttributePlaceholders(newNode, item, alias);
-            updateTextNodePlaceholders(newNode, item, alias);
-            processNode(newNode, item, alias);
-            node.parentNode.insertBefore(newNode, node);
-          });
-
-          node.remove();
-          return true;
-
-        } else {
-
-          node.remove();
-          return false;
-
-        }
       }
 
     }
