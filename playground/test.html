@@ -30,6 +30,8 @@
 
   <div id="app" class="container">
     <button id="btnLoadData" type="button" class="btn btn-primary">Load some data</button>
+    <button id="btnError" type="button" class="btn btn-primary">Produse error</button>
+    <button id="btnPost" type="button" class="btn btn-primary">Post some data</button>
 
     <div>
       <hr />
@@ -39,7 +41,7 @@
 
       <div c-if="hasError" class="col-md-12">
         <div class="alert alert-danger" role="alert">
-          {message}
+          {data.message}
         </div>
       </div>
     

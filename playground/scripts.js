@@ -6,12 +6,11 @@ var app = new AjaxComponent({
     timeout: 5000
   },
 
-  data: {},
+  data: {
+    message: ""
+  },
 
   methods: {
-    userFields() {
-      return false;
-    },
     users() {
       return this.Parent.data.data;
     }
@@ -19,7 +18,33 @@ var app = new AjaxComponent({
 
   events: {
     'click #btnLoadData': function(e) {
-      this.Parent.request('GET', 'https://reqrs.in/api/users', {delay: 1});
+      this.Parent.request({method: 'get', url: 'https://reqres.in/api/users/', params: {delay: 1}},
+        {
+          success(response) { console.log(response); },
+          error(error) { app.data.message = error.message; },
+          done() { console.log('==> Done'); }
+        }
+      );
+    },
+
+    'click #btnError': function(e) {
+      this.Parent.request({method: 'get', url: 'https://reqres.in/api/users/23'},
+        {
+          error(error) { app.data.message = error.message; }
+        }
+      )
+    },
+
+    'click #btnPost': function(e) {
+      const data = {"name": "morpheus", "job": "leader"};
+      this.Parent.request({method: 'post', url: 'https://reqres.in/api/users', data: data},
+        {
+          success(response) { console.log(response); },
+          error(error) { console.log(error); },
+          done() { console.log('==> Done' ); }
+        }
+      )
     }
+
   }
 });

@@ -7,23 +7,11 @@ var AjaxComponent = function(config) {
     
     this.el = document.querySelector(config.el);
     this.originalDOM = this.el.cloneNode(true);
-    
-    this.settings = {
-      baseUrl: null,
-      urlParams: {},
-      timeout: 5000,
-      cacheResults: true,
-      timeoutMessage: "The request has timed out",
-      errorMessage: "Something went wrong",
-      notReadyMessage: "Component is still loading.",
-    };
-    if (config.settings instanceof Object) Object.assign(this.settings, config.settings);
 
     this.state = {
       loading: false,
       error: false,
-      success: false,
-      message: '',
+      success: false
     };
 
     this.data = {};
@@ -42,9 +30,6 @@ var AjaxComponent = function(config) {
       },
       hasError() {
         return this.Parent.state.error;
-      },
-      message() {
-        return this.Parent.state.message;
       }
     };
     if (config.methods instanceof Object) Object.assign(this.methods, config.methods);
@@ -79,112 +64,36 @@ var AjaxComponent = function(config) {
     this.state.loading = false;
     this.state.error = false;
     this.state.success = false;
-    this.state.message = null;
-  }
-
-  this.updateURLParams = function(params) {
-    return Object.assign(this.settings.urlParams, params);
   }
 
 
-  this.request = function(method, url, params) {
+  this.request = function(config, callbacks) {
     const comp = this;
     if (comp.state.loading) return;
-    if (params) this.updateURLParams(params);
-    const axiosConfig = {
-      method: method,
-      url: url,
-    }
-    if (method.toUpperCase() === 'GET') axiosConfig['params'] = params;
-    if (method.toUpperCase() === 'POST') axiosConfig['data'] = params;
 
     comp.resetState();
     comp.state.loading = true;
     comp.render(function() {
 
-      axios(axiosConfig)
+      axios.request(config)
       .then(function(response) {
-        console.log(response);
         comp.state.success = true;
         comp.data = response.data;
+        if (callbacks['success'] instanceof Function) callbacks['success'](response);
       })
       .catch(function(error) {
-        if (error.response) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
-          console.log(error.response.data);
-          console.log(error.response.status);
-          console.log(error.response.headers);
-        } else if (error.request) {
-          // The request was made but no response was received
-          // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
-          // http.ClientRequest in node.js
-          console.log(error.request);
-        } else {
-          // Something happened in setting up the request that triggered an Error
-          console.log('Error', error.message);
-        }
-        console.log(error.config);
-        
         comp.state.error = true;
-        comp.message = error;
+        if (callbacks['error'] instanceof Function) callbacks['error'](error);
       })
       .then(function() {
-        console.log('==> Done');
         comp.state.loading = false;
+        if (callbacks['done'] instanceof Function) callbacks['done']();
         comp.render();
       });
 
     });
   }
 
-
-  this.update = function(params, callback) {
-    this.makeRequest('GET', params, callback); 
-  }
-
-  this.makeRequest = function(method, params, callback) {
-    const comp = this;
-    if (comp.state.loading) return;
-
-    if (params) this.updateURLParams(params);
-
-    comp.resetState();
-    comp.state.loading = true;
-
-    comp.render(function() {
-
-      $.ajax({
-        url: comp.settings.baseUrl, data: comp.settings.urlParams,
-        method: method, dataType: 'json',
-        cache: comp.settings.cacheResults, timeout: comp.settings.timeout,
-        success: function(response) {
-          comp.state.success = true;
-          comp.data = response;
-        },
-        error: function(jqXHR, status, message) {
-          comp.state.error = true;
-          if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
-            comp.state.message = jqXHR.responseJSON.message;
-          } else {
-            if (status === 'timeout') {
-              comp.state.message = comp.settings.timeoutMessage;
-            } else if (message) {
-              comp.state.message = message;
-            } else {
-              comp.state.message = comp.settings.errorMessage;
-            }
-          }
-        },
-        complete: function() {
-          comp.state.loading = false;
-          comp.render(callback)
-        }
-      });
-
-    });
-    
-  }
 
   this.parseQueryString = function(query) {
     // Code written by Komrod on https://gist.github.com/kares/956897
