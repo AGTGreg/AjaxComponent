@@ -11,8 +11,6 @@
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  
   <script src="../src/ajax-component.js"></script>
 
 </head>
@@ -29,50 +27,7 @@
   </header>
 
   <div id="app" class="container">
-    <button id="btnLoadData" type="button" class="btn btn-primary">Load some data</button>
-
-    <div>
-      <hr />
-    </div>
-
-    <div class="row">
-
-      <div c-if="hasError" class="col-md-12">
-        <div class="alert alert-danger" role="alert">
-          {message}
-        </div>
-      </div>
     
-
-      <div c-if="isLoading" class="col-md-12">
-        <div class="text-center">
-          <h2>Loading</h2>
-          <div class="spinner-border" role="status">
-            <span class="sr-only">Loading...</span>
-          </div>
-        </div>
-      </div>
-
-      <div c-if="isSuccessful" class="col-md-12">
-        <table class="table">
-          <thead class="thead-dark">
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">Name</th>
-              <th scope="col">Email</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr c-for="user in users">
-              <td>{user.id}</td>
-              <td>{user.first_name} {user.last_name}</td>
-              <td>{user.email}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-    </div>
   </div>
 
   <script src="scripts.js"></script>

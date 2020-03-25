@@ -75,16 +75,69 @@ var AjaxComponent = function(config) {
   }
   
   // Built-in methods
-  this.reset = function() {
+  this.resetState = function() {
     this.state.loading = false;
     this.state.error = false;
     this.state.success = false;
     this.state.message = null;
   }
 
-  this.updateParams = function(params) {
+  this.updateURLParams = function(params) {
     return Object.assign(this.settings.urlParams, params);
   }
+
+
+  this.request = function(method, url, params) {
+    const comp = this;
+    if (comp.state.loading) return;
+    if (params) this.updateURLParams(params);
+    const axiosConfig = {
+      method: method,
+      url: url,
+    }
+    if (method.toUpperCase() === 'GET') axiosConfig['params'] = params;
+    if (method.toUpperCase() === 'POST') axiosConfig['data'] = params;
+
+    comp.resetState();
+    comp.state.loading = true;
+    comp.render(function() {
+
+      axios(axiosConfig)
+      .then(function(response) {
+        console.log(response);
+        comp.state.success = true;
+        comp.data = response.data;
+      })
+      .catch(function(error) {
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          console.log(error.response.data);
+          console.log(error.response.status);
+          console.log(error.response.headers);
+        } else if (error.request) {
+          // The request was made but no response was received
+          // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
+          // http.ClientRequest in node.js
+          console.log(error.request);
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          console.log('Error', error.message);
+        }
+        console.log(error.config);
+        
+        comp.state.error = true;
+        comp.message = error;
+      })
+      .then(function() {
+        console.log('==> Done');
+        comp.state.loading = false;
+        comp.render();
+      });
+
+    });
+  }
+
 
   this.update = function(params, callback) {
     this.makeRequest('GET', params, callback); 
@@ -94,9 +147,9 @@ var AjaxComponent = function(config) {
     const comp = this;
     if (comp.state.loading) return;
 
-    if (params) this.updateParams(params);
+    if (params) this.updateURLParams(params);
 
-    comp.reset();
+    comp.resetState();
     comp.state.loading = true;
 
     comp.render(function() {
@@ -260,7 +313,8 @@ var AjaxComponent = function(config) {
               const condLeft = getProp(cParts[0].split('.'), pointers);
 
               if (validTypes.includes(String(typeof(condLeft))) === false) {
-                console.error(cParts[0] + " cannot be evaluated because its type is not a boolean or a string or a number");
+                console.error(
+                  cParts[0] + " cannot be evaluated because its type is not a boolean or a string or a number");
                 return false;
               } else {
                 attr = attr.replace(cParts[0], condLeft);
