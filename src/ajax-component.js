@@ -224,38 +224,49 @@ var AjaxComponent = function(config) {
     const directives = {
       'c-if': function(node, pointers) {
         let attr = node.getAttribute('c-if');
+        // In case this directive was called form a c-ifnot.
+        if (attr === null) attr = node.getAttribute('c-ifnot');
+        
         let result = getProp(attr.split('.'), pointers);
 
         if (result === undefined) {
           // Check if the attribute contains a logical operator. Split the condition at the
           // operator to get the value of the object at left side and evaluate.
           const operators = [' == ', ' === ', ' !== ', ' != ', ' > ', ' < ', ' >= ', ' <= '];
-          const validTypes = ['boolean', 'string', 'number'];
+          const validTypes = ['boolean', 'number'];
           for (let i=0; i<operators.length; i++) {
             if (attr.includes(operators[i])) {
-              const cParts = attr.split(operators[i]);
+              let condition = attr;
+              const cParts = condition.split(operators[i]);
               const condLeft = getProp(cParts[0].split('.'), pointers);
+              const condRight = cParts[1];
 
               if (validTypes.includes(String(typeof(condLeft))) === false) {
                 console.error(
-                  cParts[0] + " cannot be evaluated because its type is not a boolean or a string or a number");
+                  cParts[0] + " cannot be evaluated because it is not a boolean or a number.");
                 return false;
               } else {
-                attr = attr.replace(cParts[0], condLeft);
-                result = eval(attr);
+                condition = condition.replace(cParts[0], condLeft);
+                result = eval(condition);
               }
             }
           }
         }
 
         if (result === undefined || result === false) {
-          node.remove();
           return false;
         
         } else {
           node.removeAttribute('c-if');
           return true;
         }
+      },
+
+      // Calls c-if directive and reverses the result.
+      'c-ifnot': function(node, pointers) {
+        result = !directives['c-if'](node, pointers);
+        if (result === true) node.removeAttribute('c-ifnot');
+        return result;
       },
 
       'c-for': function(node, pointers) {
@@ -356,7 +367,10 @@ var AjaxComponent = function(config) {
         if (attrs[i].name in directives) {
           const attr = attrs[i].name;
           const result = directives[attr](node, pointers);
-          if (result === false) return;
+          if (result === false) {
+            node.remove();
+            return;
+          }
         }
       }
 
