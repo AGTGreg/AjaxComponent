@@ -19,6 +19,8 @@ or you can use the **CDN version**:
 <script src="https://cdn.jsdelivr.net/ajax-component.min.js"></script>
 ```
 
+---
+
 # Getting started
 
 In order to create an app, the first thing you need to do, is to create an element with an appropriate id.
@@ -56,7 +58,9 @@ We can also use placeholders in our element's attributes:
 </div>
 ```
 
-## Meet methods
+---
+
+## Methods
 
 In the example above we get the message directly from our data. But what if we wanted to edit message before we 
 show it to the world? Lets say we want to convert it to uppercase letters.
@@ -97,3 +101,30 @@ write a function for.
 
 Also note how we access our `data`. We use `this.Parent` to access our app and anything it might include from 
 inside `methods`.
+
+---
+
+# Conditional rendering
+
+It is very easy to control the structure of our app with **if** and **for** directives. We add these 
+directives as attributes to the elements we want to control.
+
+### If directives
+
+```html
+<div id="app">
+  <span c-if="data.seen">Now you see me</span>
+</div>
+```
+
+```js
+var app = new AjaxComponent({
+  ...
+  data: {
+    seen: true
+  },
+  ...
+})
+```
+When `seen` is `true` our element is visible. Now set it to `false` and you will see that our element is gone.
+
