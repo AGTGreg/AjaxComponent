@@ -62,7 +62,8 @@ var AjaxComponent = function(config) {
     return false;
   }
 
-  // Sets or Updates the data and then call render()
+
+  // Sets or Updates the data and then calls render()
   this.setData = function(newData, replaceData = false) {
     if (replaceData) {
       this.data = data;
@@ -72,7 +73,8 @@ var AjaxComponent = function(config) {
     this.render();
   }
   
-  // Built-in methods
+
+  // Resets to the default state. Handy before making a request.
   this.resetState = function() {
     this.state.loading = false;
     this.state.error = false;
@@ -80,6 +82,8 @@ var AjaxComponent = function(config) {
   }
 
 
+  // Makes a request with axios. Config and callbacks are both objects. Callbacks may contain: 
+  // success(response), error(error) and done() callbacks.
   this.request = function(config, callbacks) {
     const comp = this;
     if (comp.state.loading) return;
@@ -107,77 +111,6 @@ var AjaxComponent = function(config) {
       });
 
     });
-  }
-
-
-  this.parseQueryString = function(query) {
-    // Code written by Komrod on https://gist.github.com/kares/956897
-    const re = /([^&=]+)=?([^&]*)/g;
-    const decode = function (str) {
-      return decodeURIComponent(str.replace(/\+/g, ' '));
-    };
-    // recursive function to construct the result object
-    function createElement(params, key, value) {
-      key = key + '';
-      // if the key is a property
-      if (key.indexOf('.') !== -1) {
-          // extract the first part with the name of the object
-          var list = key.split('.');
-          // the rest of the key
-          var new_key = key.split(/\.(.+)?/)[1];
-          // create the object if it doesnt exist
-          if (!params[list[0]]) params[list[0]] = {};
-          // if the key is not empty, create it in the object
-          if (new_key !== '') {
-              createElement(params[list[0]], new_key, value);
-          } else console.warn('parseParams :: empty property in key "' + key + '"');
-      } else
-      // if the key is an array    
-      if (key.indexOf('[') !== -1) {
-          // extract the array name
-          var list = key.split('[');
-          key = list[0];
-          // extract the index of the array
-          var list = list[1].split(']');
-          var index = list[0]
-          // if index is empty, just push the value at the end of the array
-          if (index == '') {
-              if (!params) params = {};
-              if (!params[key] || !$.isArray(params[key])) params[key] = [];
-              params[key].push(value);
-          } else
-          // add the value at the index (must be an integer)
-          {
-              if (!params) params = {};
-              if (!params[key] || !$.isArray(params[key])) params[key] = [];
-              params[key][parseInt(index)] = value;
-          }
-      } else
-      // just normal key
-      {
-          if (!params) params = {};
-          params[key] = value;
-      }
-    }
-    // be sure the query is a string
-    query = query + '';
-    if (query === '') query = window.location + '';
-    var params = {}, e;
-    if (query) {
-        // remove # from end of query
-        if (query.indexOf('#') !== -1) {
-            query = query.substr(0, query.indexOf('#'));
-        }
-        // empty parameters
-        if (query == '') return {};
-        // execute a createElement on every key and value
-        while (e = re.exec(query)) {
-            var key = decode(e[1]);
-            var value = decode(e[2]);
-            createElement(params, key, value);
-        }
-    }
-    return params;
   }
 
 
@@ -221,6 +154,7 @@ var AjaxComponent = function(config) {
       return prop;
     }
 
+    // If and For directives
     const directives = {
       'c-if': function(node, pointers) {
         let attr = node.getAttribute('c-if');
