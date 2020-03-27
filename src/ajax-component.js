@@ -55,8 +55,21 @@ var AjaxComponent = function(config) {
     }
     this.events['Parent'] = this;
 
+    this.axiosConfig = {};
+    if (config.axiosConfig instanceof Object) Object.assign(this.axiosConfig, config.axiosConfig)
+
   } else {
     return false;
+  }
+
+  // Sets or Updates the data and then call render()
+  this.setData = function(newData, replaceData = false) {
+    if (replaceData) {
+      this.data = data;
+    } else {
+      Object.assign(this.data, newData);
+    }
+    this.render();
   }
   
   // Built-in methods
@@ -73,22 +86,24 @@ var AjaxComponent = function(config) {
 
     comp.resetState();
     comp.state.loading = true;
+    let responseData;
     comp.render(function() {
 
       axios.request(config)
       .then(function(response) {
         comp.state.success = true;
-        comp.data = response.data;
-        if (callbacks['success'] instanceof Function) callbacks['success'](response);
+        responseData = response.data;
+        if (callbacks && callbacks['success'] instanceof Function) callbacks['success'](response);
       })
       .catch(function(error) {
         comp.state.error = true;
-        if (callbacks['error'] instanceof Function) callbacks['error'](error);
+        responseData = error;
+        if (callbacks && callbacks['error'] instanceof Function) callbacks['error'](error);
       })
       .then(function() {
         comp.state.loading = false;
-        if (callbacks['done'] instanceof Function) callbacks['done']();
-        comp.render();
+        comp.setData(responseData);
+        if (callbacks && callbacks['done'] instanceof Function) callbacks['done']();
       });
 
     });
