@@ -1,9 +1,8 @@
 var app = new AjaxComponent({
-  el: '#app',
+  el: document.getElementById('app'),
   
-  settings: {
-    baseUrl: 'https://reqres.in/api/users',
-    timeout: 5000
+  axiosConfig: {
+    url: 'https://reqres.in/api/users'
   },
 
   data: {
@@ -20,7 +19,10 @@ var app = new AjaxComponent({
     'click #btnLoadData': function(e) {
       this.Parent.request({method: 'get', url: 'https://reqres.in/api/users/', params: {delay: 1}},
         {
-          success(response) { console.log(response); },
+          success(response) { 
+            console.log(response);
+            return {yo: "Response is mutated!"}; 
+          },
           error(error) { app.data.message = error.message; },
           done() { console.log('==> Done'); }
         }
