@@ -1,67 +1,5 @@
 var AjaxComponent = function(config) {
 
-  // Initialize all the properties from the config or exit if no config is provided.
-  if (config !== undefined) {
-    
-    if (! config.el) throw "==> el is not set or not present in DOM. Set el to a valid DOM element on init.";
-    
-    this.el = document.querySelector(config.el);
-    this.originalDOM = this.el.cloneNode(true);
-
-    this.state = {
-      loading: false,
-      error: false,
-      success: false
-    };
-
-    this.data = {};
-    if (config.data instanceof Object) this.data = config.data;
-
-    this.elements = {};
-    if (config.elements instanceof Object) this.elements = config.elements;
-
-    this.methods = {
-      Parent: this,
-      isLoading() {
-        return this.Parent.state.loading;
-      },
-      isSuccessful() {
-        return this.Parent.state.success;
-      },
-      hasError() {
-        return this.Parent.state.error;
-      }
-    };
-    if (config.methods instanceof Object) Object.assign(this.methods, config.methods);
-
-    this.events = {};
-    if (config.events instanceof Object) {
-      const comp = this;
-      Object.assign(comp.events, config.events)
-      // Add event listeners to :el for each event
-      for (const ev in comp.events) {
-        // Events are in this form (event element) so split at space to get the eventName and the element to attach the
-        // event on.
-        const eParts = ev.split(' ');
-        const eventName = eParts[0];
-        const eventElement = eParts[1];
-        
-        comp.el.addEventListener(eventName, function(e) {
-          comp.el.querySelectorAll(eventElement).forEach(el => {
-            if (e.srcElement === el) comp.events[ev](e);
-          });
-        });
-      }
-    }
-    this.events['Parent'] = this;
-
-    this.axiosConfig = {};
-    if (config.axiosConfig instanceof Object) Object.assign(this.axiosConfig, config.axiosConfig)
-
-  } else {
-    return false;
-  }
-
 
   // Sets or Updates the data and then calls render()
   this.setData = function(newData, replaceData = false) {
@@ -84,20 +22,27 @@ var AjaxComponent = function(config) {
 
   // Makes a request with axios. Config and callbacks are both objects. Callbacks may contain: 
   // success(response), error(error) and done() callbacks.
-  this.request = function(config, callbacks) {
+  this.request = function(config, callbacks, replaceData) {
     const comp = this;
     if (comp.state.loading) return;
+
+    let cConfig = comp.axiosConfig;
+    if (config) { Object.assign(cConfig, config) }
 
     comp.resetState();
     comp.state.loading = true;
     let responseData;
+
     comp.render(function() {
 
-      axios.request(config)
+      axios.request(cConfig)
       .then(function(response) {
         comp.state.success = true;
-        responseData = response.data;
-        if (callbacks && callbacks['success'] instanceof Function) callbacks['success'](response);
+        if (callbacks && callbacks['success'] instanceof Function) {
+          const callReturn = callbacks['success'](response);
+          if (callReturn instanceof Object) responseData = callReturn;
+        }
+        if (responseData === undefined) responseData = response.data;
       })
       .catch(function(error) {
         comp.state.error = true;
@@ -106,7 +51,7 @@ var AjaxComponent = function(config) {
       })
       .then(function() {
         comp.state.loading = false;
-        comp.setData(responseData);
+        comp.setData(responseData, replaceData);
         if (callbacks && callbacks['done'] instanceof Function) callbacks['done']();
       });
 
@@ -114,6 +59,9 @@ var AjaxComponent = function(config) {
   }
 
 
+  // Render ============================================================================================================
+  // This is the heart of AppBlock. This is where all placeholders and directives get evaluated based on the
+  // data and content gets updated.
   this.render = function(callback) {
     const comp = this;
 
@@ -154,6 +102,54 @@ var AjaxComponent = function(config) {
       return prop;
     }
 
+    // Placeholders ----------------------------------------------------------------------------------------------------
+    // Returns the value of a placeholder.
+    const getPlaceholderVal = function(placeholder, pointers) {
+      if ( /{([^}]+)}/.test(placeholder) === false ) return; 
+      const placeholderName = placeholder.replace(/{|}/g , '');
+      let propKeys = placeholderName.split('.');
+      return getProp(propKeys, pointers);
+    }; 
+
+    // Replaces all placeholders in all attributes in a node.
+    const updateAttributePlaceholders = function(node, pointers) {
+      const attrs = node.attributes;
+      for (let i=0; i<attrs.length; i++) {
+        if ( /{([^}]+)}/.test(attrs[i].value) ) {
+          const props = attrs[i].value.match(/{([^}]+)}/g);
+
+          for (let p=0; p<props.length; p++) {
+            const re = new RegExp(props[p], 'g');
+            attrs[i].value = attrs[i].value.replace(re, getPlaceholderVal(props[p], pointers));
+          }
+        }
+      }
+    };
+
+    // Updates all the text nodes that contain placeholders {}
+    const updateTextNodePlaceholders = function(nodeTree, pointers) {
+      // Create a new treeWalker with all visible text nodes that contain placeholders;
+      const textWalker = document.createTreeWalker(
+        nodeTree, NodeFilter.SHOW_TEXT, {
+          acceptNode: function(node) {
+            if ( /{([^}]+)}/.test(node.data) ) {
+              return NodeFilter.FILTER_ACCEPT;
+            }
+          }
+        }
+      );
+      while (textWalker.nextNode()) {
+        let nodeVal = textWalker.currentNode.nodeValue;
+        // Iterate over the props (if any) and replace it with the appropriate value.
+        const props = nodeVal.match(/{([^}]+)}/g);
+        for (let i=0; i<props.length; i++) {
+          nodeVal = nodeVal.replace(props[i], getPlaceholderVal(props[i], pointers));
+        }
+        textWalker.currentNode.nodeValue = nodeVal;
+      }
+    };
+
+    // Directives ------------------------------------------------------------------------------------------------------
     // If and For directives
     const directives = {
       'c-if': function(node, pointers) {
@@ -243,55 +239,6 @@ var AjaxComponent = function(config) {
 
     }
 
-
-    // Returns the value of a placeholder.
-    const getPlaceholderVal = function(placeholder, pointers) {
-      if ( /{([^}]+)}/.test(placeholder) === false ) return; 
-      const placeholderName = placeholder.replace(/{|}/g , '');
-      let propKeys = placeholderName.split('.');
-      return getProp(propKeys, pointers);
-    }; 
-
-
-    // Replaces all placeholders in all attributes in a node.
-    const updateAttributePlaceholders = function(node, pointers) {
-      const attrs = node.attributes;
-      for (let i=0; i<attrs.length; i++) {
-        if ( /{([^}]+)}/.test(attrs[i].value) ) {
-          const props = attrs[i].value.match(/{([^}]+)}/g);
-
-          for (let p=0; p<props.length; p++) {
-            const re = new RegExp(props[p], 'g');
-            attrs[i].value = attrs[i].value.replace(re, getPlaceholderVal(props[p], pointers));
-          }
-        }
-      }
-    };
-
-    // Updates all the text nodes that contain placeholders {}
-    const updateTextNodePlaceholders = function(nodeTree, pointers) {
-      // Create a new treeWalker with all visible text nodes that contain placeholders;
-      const textWalker = document.createTreeWalker(
-        nodeTree, NodeFilter.SHOW_TEXT, {
-          acceptNode: function(node) {
-            if ( /{([^}]+)}/.test(node.data) ) {
-              return NodeFilter.FILTER_ACCEPT;
-            }
-          }
-        }
-      );
-
-      while (textWalker.nextNode()) {
-        let nodeVal = textWalker.currentNode.nodeValue;
-        // Iterate over the props (if any) and replace it with the appropriate value.
-        const props = nodeVal.match(/{([^}]+)}/g);
-        for (let i=0; i<props.length; i++) {
-          nodeVal = nodeVal.replace(props[i], getPlaceholderVal(props[i], pointers));
-        }
-        textWalker.currentNode.nodeValue = nodeVal;
-      }
-    };
-
     // Processes nodes recursivelly in reverse. Evaluates the nodes based on their attributes.
     // Removes and skips the nodes that evaluate to false.
     const processNode = function(node, pointers) {
@@ -323,22 +270,89 @@ var AjaxComponent = function(config) {
 
     }
 
-    let tmpDOM = comp.originalDOM.cloneNode(true);
-    
+    let tmpDOM = comp.template.cloneNode(true);    
     processNode(tmpDOM);
     updateTextNodePlaceholders(tmpDOM);
     this.el.innerHTML = tmpDOM.innerHTML;
     if (callback instanceof Function) callback();
   }
 
+
+  // Initialization ====================================================================================================
   this.Init = function() {
-    this.render();
-    delete this.init;
-    return this;
+    const comp = this;
+
+    // Initialize all the properties from the config or exit if no config is provided.
+    if (config !== undefined) {
+      
+      if (config.el === undefined) {
+        throw "==> el is not set or not present in DOM. Set el to a valid DOM element on init.";
+      }
+      
+      comp.el = config.el;
+
+      if (config.template) {
+        comp.template = config.template; 
+      } else {
+        comp.template = comp.el.cloneNode(true);
+        comp.el.innerHTML = "";
+      }
+
+      comp.state = {
+        loading: false,
+        error: false,
+        success: false
+      };
+
+      comp.data = {};
+      if (config.data instanceof Object) comp.data = config.data;
+
+      comp.methods = {
+        Parent: comp,
+        isLoading() {
+          return this.Parent.state.loading;
+        },
+        isSuccessful() {
+          return this.Parent.state.success;
+        },
+        hasError() {
+          return this.Parent.state.error;
+        }
+      };
+      if (config.methods instanceof Object) Object.assign(comp.methods, config.methods);
+
+      comp.events = {};
+      if (config.events instanceof Object) {
+        Object.assign(comp.events, config.events)
+        // Add event listeners to :el for each event
+        for (const ev in comp.events) {
+          // Events are in this form (event element) so split at space to get the eventName and the element to attach the
+          // event on.
+          const eParts = ev.split(' ');
+          const eventName = eParts[0];
+          const eventElement = eParts[1];
+          
+          comp.el.addEventListener(eventName, function(e) {
+            comp.el.querySelectorAll(eventElement).forEach(el => {
+              if (e.srcElement === el) comp.events[ev](e);
+            });
+          });
+        }
+      }
+      comp.events['Parent'] = comp;
+
+      comp.axiosConfig = { 
+        headers: {'X-Requested-With': 'XMLHttpRequest'} 
+      };
+      if (config.axiosConfig instanceof Object) Object.assign(comp.axiosConfig, config.axiosConfig)
+
+    } else {
+      return false;
+    }
+
+    comp.render();
+    return comp;
   }
 
-  this.Init();
-
-  return this;
-
+  return this.Init();
 }
