@@ -65,6 +65,8 @@ var AjaxComponent = function(config) {
   this.render = function(callback) {
     const comp = this;
 
+    if (comp.methods.beforeRender instanceof Function) comp.methods.beforeRender();
+
     /*
     Gets a property's value.
 
@@ -274,6 +276,7 @@ var AjaxComponent = function(config) {
     processNode(tmpDOM);
     updateTextNodePlaceholders(tmpDOM);
     this.el.innerHTML = tmpDOM.innerHTML;
+    if (comp.methods.afterRender instanceof Function) comp.methods.afterRender();
     if (callback instanceof Function) callback();
   }
 
@@ -317,6 +320,12 @@ var AjaxComponent = function(config) {
         },
         hasError() {
           return this.Parent.state.error;
+        },
+        beforeRender() {
+
+        },
+        afterRender() {
+
         }
       };
       if (config.methods instanceof Object) Object.assign(comp.methods, config.methods);
